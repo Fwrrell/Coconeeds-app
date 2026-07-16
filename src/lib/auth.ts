@@ -1,6 +1,7 @@
 import NextAuth, { CredentialsSignin } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
+import { PrismaAdapter } from "@auth/prisma-adapter";
 import prisma from "./prisma";
 import bcrypt from "bcrypt";
 
@@ -12,11 +13,27 @@ class CustomAuthError extends CredentialsSignin {
 }
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  adapter: PrismaAdapter(prisma),
+
+  session: {
+    strategy: "jwt",
+  },
+
   providers: [
     // OAuth Provider untuk ADMIN / PERUSAHAAN
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+
+      profile(profile) {
+        return {
+          id: profile.sub,
+          name: profile.name,
+          email: profile.email,
+          image: profile.picture,
+          role: "PERUSAHAAN",
+        };
+      },
     }),
 
     // Credentials (Phone Number + PIN) Provider untuk PETANI
@@ -63,19 +80,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
   callbacks: {
     // Inject role ke jwt dan session
-    async jwt({ token, user, account }) {
-      if (user) {
-        if (account?.provider === "google") {
-          token.role = "PERUSAHAAN";
-        } else if ("role" in user) {
-          token.role = user.role; // PETANI | PERUSAHAAN | ADMIN
-        }
+    async jwt({ token, user }) {
+      if (user && "role" in user) {
+        token.role = user.role; // PETANI | PERUSAHAAN | ADMIN
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
         (session.user as any).role = token.role;
+        (session.user as any).id = token.sub;
       }
       return session;
     },

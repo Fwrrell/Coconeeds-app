@@ -387,7 +387,7 @@ export default function LoginPage() {
                         />
                       </svg>
                     )}
-                    Lanjutkan dengan Google
+                    Masuk dengan Google
                   </button>
                 </div>
               </motion.div>
