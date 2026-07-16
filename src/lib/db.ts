@@ -1,8 +1,7 @@
-import { PrismaClient } from "../generated/client/client";
+import { PrismaClient } from "@prisma/client";
 
 const prismaClientSingleton = () => {
   return new PrismaClient({
-    // Explicitly inject the pooled connection string into the runtime client
     datasources: {
       db: {
         url: process.env.DATABASE_URL,

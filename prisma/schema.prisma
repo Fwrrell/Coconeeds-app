@@ -4,8 +4,7 @@
 // Get a free hosted Postgres database in seconds: `npx create-db`
 
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/client"
+  provider = "prisma-client-js"
 }
 
 datasource db {
@@ -26,5 +25,5 @@ model User {
 enum Role {
   PETANI
   PERUSAHAAN
-  admin
+  ADMIN
 }
