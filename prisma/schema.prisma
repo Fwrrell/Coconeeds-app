@@ -11,6 +11,12 @@ datasource db {
   provider = "postgresql"
 }
 
+enum Role {
+  PETANI
+  PERUSAHAAN
+  ADMIN
+}
+
 model User {
   id            String    @id @default(uuid())
   name          String?
@@ -27,6 +33,7 @@ model User {
   updatedAt DateTime @updatedAt
 
   accounts Account[]
+  panens   Panen[]
 }
 
 model Account {
@@ -48,8 +55,56 @@ model Account {
   @@unique([provider, providerAccountId])
 }
 
-enum Role {
-  PETANI
-  PERUSAHAAN
-  ADMIN
+enum PengirimanMethod {
+  SELF_DELIVERY
+  PICKUP
+}
+
+enum PanenStatus {
+  PENDING_PICKUP
+  PENDING_DROPOFF
+  IN_WAREHOUSE
+  IN_TRANSIT
+  DELIVERED
+}
+
+model Panen {
+  id               String           @id @default(uuid())
+  petaniId         String
+  petani           User             @relation(fields: [petaniId], references: [id], onDelete: Cascade)
+  type             String // KOPRA | SABUT | TEMPURUNG
+  expectedWeight   Float // estimasi berat (input petani)
+  tanggalPanen     DateTime
+  pengirimanMethod PengirimanMethod
+  actualWeight     Float? // berat actual dari qc
+  grade            String?
+  moisture         Float?
+  basePricePerKg   Float?
+  profitMargin     Float?
+  status           PanenStatus      @default(PENDING_PICKUP)
+  createdAt        DateTime         @default(now())
+  updateAt         DateTime         @updatedAt
+  batchId          String?
+
+  batch Batch? @relation(fields: [batchId], references: [id])
+}
+
+model Batch {
+  id          String      @id @default(uuid())
+  type        String
+  totalWeight Float
+  status      PanenStatus @default(IN_WAREHOUSE)
+  createdAt   DateTime    @default(now())
+  updateAt    DateTime    @updatedAt
+  panens      Panen[]
+  ledger      Ledger?
+}
+
+model Ledger {
+  id          String   @id @default(ulid())
+  batchId     String   @unique
+  batch       Batch    @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  prevHash    String // Hash dari batch sebelumnya
+  currentHash String // Hash gabungan dari data batch + data qc
+  createdAt   DateTime @default(now())
 }
