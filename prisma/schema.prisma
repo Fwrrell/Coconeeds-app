@@ -97,6 +97,8 @@ model Batch {
   type              String
   totalWeight       Float
   status            PanenStatus      @default(IN_WAREHOUSE)
+  wtbListingId      String?
+  wtbListing        WtbListing?      @relation(fields: [wtbListingId], references: [id], onDelete: Cascade)
   createdAt         DateTime         @default(now())
   updateAt          DateTime         @updatedAt
 
@@ -132,6 +134,7 @@ model WtbListing {
   updatedAt    DateTime  @updatedAt
 
   negosiasi Negosiasi[]
+  batches   Batch[]
 }
 
 model Negosiasi {
