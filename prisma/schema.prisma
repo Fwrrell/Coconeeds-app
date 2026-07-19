@@ -32,8 +32,9 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  accounts Account[]
-  panens   Panen[]
+  accounts    Account[]
+  panens      Panen[]
+  wtbListings WtbListing[]
 }
 
 model Account {
@@ -90,14 +91,17 @@ model Panen {
 }
 
 model Batch {
-  id          String      @id @default(uuid())
-  type        String
-  totalWeight Float
-  status      PanenStatus @default(IN_WAREHOUSE)
-  createdAt   DateTime    @default(now())
-  updateAt    DateTime    @updatedAt
-  panens      Panen[]
-  ledger      Ledger?
+  id                String           @id @default(uuid())
+  pengirimanKapalId String?
+  pengirimanKapal   PengirimanKapal? @relation(fields: [pengirimanKapalId], references: [id])
+  type              String
+  totalWeight       Float
+  status            PanenStatus      @default(IN_WAREHOUSE)
+  createdAt         DateTime         @default(now())
+  updateAt          DateTime         @updatedAt
+
+  panens Panen[]
+  ledger Ledger?
 }
 
 model Ledger {
@@ -107,4 +111,64 @@ model Ledger {
   prevHash    String // Hash dari batch sebelumnya
   currentHash String // Hash gabungan dari data batch + data qc
   createdAt   DateTime @default(now())
+}
+
+enum WtbStatus {
+  OPEN
+  DEAL
+  COMPLETED
+}
+
+model WtbListing {
+  id           String    @id @default(uuid())
+  perusahaanId String
+  perusahaan   User      @relation(fields: [perusahaanId], references: [id], onDelete: Cascade)
+  komoditas    String // e.g.: KOPRA | SABUT | ...
+  targetWeight Float
+  maxPrice     Float
+  destination  String
+  status       WtbStatus @default(OPEN)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  negosiasi Negosiasi[]
+}
+
+model Negosiasi {
+  id           String     @id @default(uuid())
+  wtbId        String
+  wtb          WtbListing @relation(fields: [wtbId], references: [id], onDelete: Cascade)
+  senderRole   Role
+  offeredPrice Float
+  note         String?
+  createdAt    DateTime   @default(now())
+}
+
+enum PengirimanKapalStatus {
+  WAITING_DEPARTURE
+  IN_TRANSIT
+  ARRIVED
+}
+
+model PengirimanKapal {
+  id          String                @id @default(uuid())
+  namaKapal   String
+  rute        String
+  totalBiaya  Float
+  totalWeight Float
+  status      PengirimanKapalStatus @default(WAITING_DEPARTURE)
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+
+  batches    Batch[]
+  splitBills SplitBill[]
+}
+
+model SplitBill {
+  id                String          @id @default(uuid())
+  pengirimanKapalId String
+  pengirimanKapal   PengirimanKapal @relation(fields: [pengirimanKapalId], references: [id], onDelete: Cascade)
+  lokasiKopdes      String
+  weight            Float
+  amountToPay       Float
 }
