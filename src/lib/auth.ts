@@ -12,6 +12,8 @@ class CustomAuthError extends CredentialsSignin {
   }
 }
 
+const SUPER_ADMIN_EMAIL = "muhammadfarrel0@gmail.com";
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
 
@@ -81,8 +83,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   callbacks: {
     // Inject role ke jwt dan session
     async jwt({ token, user }) {
-      if (user && "role" in user) {
-        token.role = user.role; // PETANI | PERUSAHAAN | ADMIN
+      if (user) {
+        token.id = user.id;
+
+        if (user.email === SUPER_ADMIN_EMAIL) {
+          // kalo email ada di SUPER_ADMIN_EMAIL maka kasih role admin
+          token.role = "ADMIN";
+        } else if ("role" in user) {
+          // case lain ambil role asli di db
+          token.role = user.role;
+        }
       }
       return token;
     },
