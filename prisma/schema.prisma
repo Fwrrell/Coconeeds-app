@@ -84,7 +84,7 @@ model Panen {
   profitMargin     Float?
   status           PanenStatus      @default(PENDING_PICKUP)
   createdAt        DateTime         @default(now())
-  updateAt         DateTime         @updatedAt
+  updatedAt        DateTime         @updatedAt
   batchId          String?
 
   batch Batch? @relation(fields: [batchId], references: [id])
@@ -100,7 +100,7 @@ model Batch {
   wtbListingId      String?
   wtbListing        WtbListing?      @relation(fields: [wtbListingId], references: [id], onDelete: Cascade)
   createdAt         DateTime         @default(now())
-  updateAt          DateTime         @updatedAt
+  updatedAt         DateTime         @updatedAt
 
   panens Panen[]
   ledger Ledger?

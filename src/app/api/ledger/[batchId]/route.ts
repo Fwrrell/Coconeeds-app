@@ -1,12 +1,22 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { auth } from "@/lib/auth";
 
 export async function GET(
   req: Request,
-  context: { params: { batchId: string } },
+  { params }: { params: Promise<{ batchId: string }> },
 ) {
   try {
-    const { batchId } = await context.params;
+    // auth check
+    const session = await auth();
+    if (!session || !session.user) {
+      return NextResponse.json(
+        { error: "Autentikasi diperlukan." },
+        { status: 401 },
+      );
+    }
+
+    const { batchId } = await params;
 
     if (!batchId) {
       return NextResponse.json(

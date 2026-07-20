@@ -1,24 +1,47 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { auth } from "@/lib/auth";
+import { z } from "zod";
+
+// schema validation
+const pengirimanSchema = z.object({
+  namaKapal: z.string().min(1, "Nama kapal wajib diisi"),
+  rute: z.string().min(1, "Rute pengiriman wajib diisi"),
+  totalBiaya: z.coerce.number().positive("Total biaya harus bernilai positif"),
+  batchIds: z.array(z.string().min(1)).min(1, "Minimal pilih 1 batch pengiriman"),
+});
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
-    const { namaKapal, rute, totalBiaya, batchIds } = body;
-
-    // validate
-    if (
-      !namaKapal ||
-      !rute ||
-      !totalBiaya ||
-      !batchIds ||
-      batchIds.length === 0
-    ) {
+    // auth check
+    const session = await auth();
+    if (!session || !session.user) {
       return NextResponse.json(
-        { error: "Data tidak lengkap. Pastikan semua data terisi." },
+        { error: "Autentikasi diperlukan." },
+        { status: 401 },
+      );
+    }
+
+    // role check: only ADMIN can manage shipments
+    if (session.user.role !== "ADMIN") {
+      return NextResponse.json(
+        { error: "Anda tidak memiliki akses untuk membuat pengiriman." },
+        { status: 403 },
+      );
+    }
+
+    const body = await req.json();
+
+    // zod validation
+    const parsed = pengirimanSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error.issues[0].message },
         { status: 400 },
       );
     }
+
+    const { namaKapal, rute, totalBiaya, batchIds } = parsed.data;
 
     // ambil data batch beserta data panen dan lokasi petani
     const batches = await prisma.batch.findMany({
@@ -69,7 +92,7 @@ export async function POST(req: Request) {
         data: {
           namaKapal,
           rute,
-          totalBiaya: Number(totalBiaya),
+          totalBiaya: totalBiaya,
           totalWeight: totalWeightKapal,
           status: "WAITING_DEPARTURE",
         },
@@ -84,12 +107,12 @@ export async function POST(req: Request) {
         },
       });
 
-      // hitung proporsi tagihan (split bill sesuai beban yang disumbang) + bikni record
+      // hitung proporsi tagihan (split bill sesuai beban yang disumbang) + bikin record
       const splitBillsData = Object.entries(locationWeights).map(
         ([lokasi, weightDesa]) => {
           // rumus: (berat desa / total berat) * total biaya
           const amountToPay =
-            (weightDesa / totalWeightKapal) * Number(totalBiaya);
+            (weightDesa / totalWeightKapal) * totalBiaya;
 
           return {
             pengirimanKapalId: kapal.id,

@@ -1,26 +1,49 @@
 import { NextResponse } from "next/server";
 import { PengirimanMethod, PanenStatus } from "@prisma/client";
 import prisma from "@/lib/prisma";
+import { auth } from "@/lib/auth";
+import { z } from "zod";
+
+// schema validation
+const panenSchema = z.object({
+  petaniId: z.string().min(1, "ID Petani wajib diisi"),
+  type: z.string().min(1, "Tipe hasil panen wajib diisi"), // KOPRA | SABUT | TEMPURUNG
+  expectedWeight: z.coerce.number().positive("Estimasi berat harus lebih besar dari 0"),
+  tanggalPanen: z.coerce.date({ message: "Tanggal panen tidak valid" }),
+  pengirimanMethod: z.nativeEnum(PengirimanMethod, {
+    errorMap: () => ({ message: "Metode pengiriman tidak valid" }),
+  }),
+});
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
-    const { petaniId, type, expectedWeight, tanggalPanen, pengirimanMethod } =
-      body;
-
-    // validate data
-    if (
-      !petaniId ||
-      !type ||
-      !expectedWeight ||
-      !tanggalPanen ||
-      !pengirimanMethod
-    ) {
+    // auth check
+    const session = await auth();
+    if (!session || !session.user) {
       return NextResponse.json(
-        {
-          error: "Data tidak lengkap. Pastikan semua data terisi.",
-        },
+        { error: "Autentikasi diperlukan." },
+        { status: 401 },
+      );
+    }
+
+    const body = await req.json();
+
+    // zod validation
+    const parsed = panenSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error.issues[0].message },
         { status: 400 },
+      );
+    }
+
+    const { petaniId, type, expectedWeight, tanggalPanen, pengirimanMethod } = parsed.data;
+
+    // role & authorization check: petani hanya boleh submit data dia sendiri, admin bebas
+    if (session.user.role === "PETANI" && session.user.id !== petaniId) {
+      return NextResponse.json(
+        { error: "Anda tidak memiliki akses untuk membuat data panen atas nama user lain." },
+        { status: 403 },
       );
     }
 
@@ -37,9 +60,9 @@ export async function POST(req: Request) {
       data: {
         petaniId,
         type,
-        expectedWeight: parseFloat(expectedWeight),
-        tanggalPanen: new Date(tanggalPanen),
-        pengirimanMethod: pengirimanMethod as PengirimanMethod,
+        expectedWeight,
+        tanggalPanen,
+        pengirimanMethod,
         status: initStatus,
       },
     });
@@ -62,15 +85,34 @@ export async function POST(req: Request) {
 
 export async function GET(req: Request) {
   try {
+    // auth check
+    const session = await auth();
+    if (!session || !session.user) {
+      return NextResponse.json(
+        { error: "Autentikasi diperlukan." },
+        { status: 401 },
+      );
+    }
+
     // ambil query param dari URL (misal: ?petaniId=xxx atau ?status=pending)
     const { searchParams } = new URL(req.url);
     const petaniId = searchParams.get("petaniId");
     const status = searchParams.get("status");
 
+    // authorization check: petani hanya boleh melihat riwayat dia sendiri
+    if (session.user.role === "PETANI") {
+      if (!petaniId || session.user.id !== petaniId) {
+        return NextResponse.json(
+          { error: "Anda hanya diperbolehkan melihat riwayat panen Anda sendiri." },
+          { status: 403 },
+        );
+      }
+    }
+
     const queryOptions: any = {
-      orderBy: { createdAt: "desc" }, // urutin datar dari terbaru
+      orderBy: { createdAt: "desc" }, // urutkan data dari terbaru
       include: {
-        // JOIN untuk mengambil data petani. untuk keperluan dashboard admin (kopdes)
+        // JOIN untuk mengambil data petani untuk dashboard admin/kopdes
         petani: {
           select: { name: true, location: true },
         },
@@ -79,11 +121,9 @@ export async function GET(req: Request) {
 
     if (petaniId) {
       // page petani request API untuk melihat riwayat setor dia
-      // Keperluan: untuk membuat riwayat transaksi antara petani dengan coco
       queryOptions.where = { petaniId: petaniId };
     } else if (status === "pending") {
       // page admin req daftar barang yang harus di urus hari ini
-      // Keperluan: untuk sorting ke coco hasil panen mana yang harus dikerjakan (qc) hari ini
       queryOptions.where = {
         status: {
           in: [PanenStatus.PENDING_PICKUP, PanenStatus.PENDING_DROPOFF],
@@ -91,7 +131,7 @@ export async function GET(req: Request) {
       };
     }
 
-    // kalo gaada param maka kita return semua data
+    // ambil data
     const dataPanen = await prisma.panen.findMany(queryOptions);
 
     return NextResponse.json(
@@ -101,7 +141,7 @@ export async function GET(req: Request) {
   } catch (err) {
     console.error("Error in GET /api/panen:", err);
     return NextResponse.json(
-      { message: "Terjadi error pada sistem." },
+      { error: "Terjadi kesalahan pada sistem." },
       { status: 500 },
     );
   }

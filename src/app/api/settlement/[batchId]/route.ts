@@ -1,17 +1,35 @@
 import { NextResponse } from "next/server";
 import { PanenStatus } from "@prisma/client";
 import prisma from "@/lib/prisma";
+import { auth } from "@/lib/auth";
 
 export async function POST(
   req: Request,
-  { params }: { params: { batchId: string } },
+  { params }: { params: Promise<{ batchId: string }> },
 ) {
   try {
-    const { batchId } = params;
+    // auth check
+    const session = await auth();
+    if (!session || !session.user) {
+      return NextResponse.json(
+        { error: "Autentikasi diperlukan." },
+        { status: 401 },
+      );
+    }
+
+    // role check: only ADMIN or PERUSAHAAN can settle
+    if (session.user.role !== "ADMIN" && session.user.role !== "PERUSAHAAN") {
+      return NextResponse.json(
+        { error: "Anda tidak memiliki akses untuk melakukan ini." },
+        { status: 403 },
+      );
+    }
+
+    const { batchId } = await params;
 
     if (!batchId) {
       return NextResponse.json(
-        { error: "Data tidak lengkap. Pastikan semua data terisi." },
+        { error: "Batch ID wajib disertakan." },
         { status: 400 },
       );
     }
@@ -23,7 +41,7 @@ export async function POST(
         where: { id: batchId },
         data: {
           status: PanenStatus.DELIVERED,
-          updateAt: new Date(),
+          updatedAt: new Date(),
         },
       });
 

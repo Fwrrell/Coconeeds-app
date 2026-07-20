@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "./lib/auth";
 
 // list route yang gaboleh di akses kalo udah login
-const authRoutes = ["/login", "register"];
+const authRoutes = ["/login", "/register"];
 
 // default route
 const DEFAULT_REDIRECT = "/app";

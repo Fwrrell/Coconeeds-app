@@ -1,30 +1,60 @@
 import { NextResponse } from "next/server";
 import { PanenStatus } from "@prisma/client";
 import prisma from "@/lib/prisma";
+import { auth } from "@/lib/auth";
+import { z } from "zod";
 import crypto from "crypto";
+
+// schema validation
+const panenItemSchema = z.object({
+  panenId: z.string().min(1, "ID Panen wajib disertakan"),
+  actualWeight: z.coerce.number().positive("Berat aktual harus bernilai positif"),
+  grade: z.string().min(1, "Grade wajib diisi"),
+  moisture: z.coerce.number().nonnegative("Kadar air tidak boleh negatif"),
+  basePricePerKg: z.coerce.number().positive("Harga dasar harus bernilai positif"),
+});
+
+const qcBatchSchema = z.object({
+  type: z.string().min(1, "Tipe batch wajib diisi"),
+  panenList: z.array(panenItemSchema).min(1, "Daftar hasil panen tidak boleh kosong"),
+});
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
-    const { type, panenList } = body;
-
-    // validate
-    if (
-      !type ||
-      !panenList ||
-      !Array.isArray(panenList) ||
-      panenList.length === 0
-    ) {
+    // auth check
+    const session = await auth();
+    if (!session || !session.user) {
       return NextResponse.json(
-        { error: "Data tidak valid. Pastikan semua data terisi." },
+        { error: "Autentikasi diperlukan." },
+        { status: 401 },
+      );
+    }
+
+    // role check: only ADMIN can perform quality control and batching
+    if (session.user.role !== "ADMIN") {
+      return NextResponse.json(
+        { error: "Anda tidak memiliki akses untuk memproses QC." },
+        { status: 403 },
+      );
+    }
+
+    const body = await req.json();
+
+    // zod validation
+    const parsed = qcBatchSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error.issues[0].message },
         { status: 400 },
       );
     }
 
+    const { type, panenList } = parsed.data;
+
     const result = await prisma.$transaction(async (tx) => {
       // total barang aktual dari seluruh barang yang digabung
       const totalWeight = panenList.reduce(
-        (acc, curr) => acc + parseFloat(curr.actualWeight),
+        (acc, curr) => acc + curr.actualWeight,
         0,
       );
 
@@ -42,10 +72,10 @@ export async function POST(req: Request) {
         await tx.panen.update({
           where: { id: item.panenId },
           data: {
-            actualWeight: parseFloat(item.actualWeight),
+            actualWeight: item.actualWeight,
             grade: item.grade,
-            moisture: parseFloat(item.moisture),
-            basePricePerKg: parseFloat(item.basePricePerKg),
+            moisture: item.moisture,
+            basePricePerKg: item.basePricePerKg,
             status: PanenStatus.IN_WAREHOUSE,
             batchId: newBatch.id,
           },
@@ -54,7 +84,7 @@ export async function POST(req: Request) {
 
       // traceability ledger: cari hash dari batch terakhir agar chaining
       const lastLedger = await tx.ledger.findFirst({
-        orderBy: { createdAt: "asc" },
+        orderBy: { createdAt: "desc" },
       });
 
       const prevHash = lastLedger ? lastLedger.currentHash : "GENESIS_BLOCK";
@@ -91,7 +121,7 @@ export async function POST(req: Request) {
   } catch (err) {
     console.error("Error in POST /api/qc-batch:", err);
     return NextResponse.json(
-      { error: "Terjadi kesalah pada sistem." },
+      { error: "Terjadi kesalahan pada sistem." },
       { status: 500 },
     );
   }

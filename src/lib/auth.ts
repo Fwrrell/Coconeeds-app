@@ -89,7 +89,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (user.email === SUPER_ADMIN_EMAIL) {
           // kalo email ada di SUPER_ADMIN_EMAIL maka kasih role admin
           token.role = "ADMIN";
-        } else if ("role" in user) {
+        } else if (user.role) {
           // case lain ambil role asli di db
           token.role = user.role;
         }
@@ -98,8 +98,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
     async session({ session, token }) {
       if (session.user) {
-        (session.user as any).role = token.role;
-        (session.user as any).id = token.sub;
+        session.user.role = token.role ?? "PETANI";
+        session.user.id = token.id ?? token.sub ?? "";
       }
       return session;
     },

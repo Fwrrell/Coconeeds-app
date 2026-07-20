@@ -10,14 +10,20 @@ const globalForPrisma = globalThis as unknown as {
 
 const connectionString = process.env.DATABASE_URL || process.env.DIRECT_URL;
 
+// konfigurasi SSL opsional berdasarkan environment
+const isLocal = !connectionString || connectionString.includes("localhost") || connectionString.includes("127.0.0.1");
+const sslConfig = isLocal
+  ? undefined
+  : {
+      rejectUnauthorized: process.env.DB_VERIFY_SSL === "true",
+    };
+
 // setup pool dari Postgres
 const pool =
   globalForPrisma.pgPool ??
   new Pool({
     connectionString,
-    ssl: {
-      rejectUnauthorized: false,
-    },
+    ssl: sslConfig,
   });
 
 // adapter prisma untuk postgresql

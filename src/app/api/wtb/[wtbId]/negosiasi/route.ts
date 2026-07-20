@@ -1,12 +1,29 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { auth } from "@/lib/auth";
+import { z } from "zod";
+
+const negosiasiSchema = z.object({
+  senderRole: z.enum(["PETANI", "PERUSAHAAN", "ADMIN"]),
+  offeredPrice: z.coerce.number().positive("Harga penawaran harus bernilai positif"),
+  note: z.string().optional().nullable(),
+});
 
 export async function GET(
   req: Request,
-  { params }: { params: { wtbId: string } },
+  { params }: { params: Promise<{ wtbId: string }> },
 ) {
   try {
-    const { wtbId } = params;
+    // auth check
+    const session = await auth();
+    if (!session || !session.user) {
+      return NextResponse.json(
+        { error: "Autentikasi diperlukan." },
+        { status: 401 },
+      );
+    }
+
+    const { wtbId } = await params;
 
     const negosiasi = await prisma.negosiasi.findMany({
       where: { wtbId },
@@ -18,9 +35,9 @@ export async function GET(
       { status: 200 },
     );
   } catch (err) {
-    console.error("Error in GET /api/wtb/[wtbId]:", err);
+    console.error("Error in GET /api/wtb/[wtbId]/negosiasi:", err);
     return NextResponse.json(
-      { error: "Terjadi kesalahpada pada sistem." },
+      { error: "Terjadi kesalahan pada sistem." },
       { status: 500 },
     );
   }
@@ -28,27 +45,37 @@ export async function GET(
 
 export async function POST(
   req: Request,
-  { params }: { params: { wtbId: string } },
+  { params }: { params: Promise<{ wtbId: string }> },
 ) {
   try {
-    const { wtbId } = params;
-    const body = await req.json();
-    const { senderRole, offeredPrice, note } = body;
-
-    if (!senderRole || !offeredPrice) {
+    // auth check
+    const session = await auth();
+    if (!session || !session.user) {
       return NextResponse.json(
-        {
-          error: "Data tidak lengkap. Pastikan semua data terisi.",
-        },
+        { error: "Autentikasi diperlukan." },
+        { status: 401 },
+      );
+    }
+
+    const { wtbId } = await params;
+    const body = await req.json();
+
+    // zod validation
+    const parsed = negosiasiSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error.issues[0].message },
         { status: 400 },
       );
     }
+
+    const { senderRole, offeredPrice, note } = parsed.data;
 
     const newNego = await prisma.negosiasi.create({
       data: {
         wtbId,
         senderRole,
-        offeredPrice: Number(offeredPrice),
+        offeredPrice,
         note,
       },
     });
@@ -58,7 +85,7 @@ export async function POST(
       { status: 201 },
     );
   } catch (err) {
-    console.error("Error in POST /api/wtb/[wtbId]:", err);
+    console.error("Error in POST /api/wtb/[wtbId]/negosiasi:", err);
     return NextResponse.json(
       { error: "Terjadi kesalahan pada sistem." },
       { status: 500 },
