@@ -3,11 +3,7 @@ import prisma from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
 
-const negosiasiSchema = z.object({
-  senderRole: z.enum(["PETANI", "PERUSAHAAN", "ADMIN"]),
-  offeredPrice: z.coerce.number().positive("Harga penawaran harus bernilai positif"),
-  note: z.string().optional().nullable(),
-});
+import { negosiasiSchema } from "@/lib/validations/negosiasi.schema";
 
 export async function GET(
   req: Request,
@@ -69,12 +65,24 @@ export async function POST(
       );
     }
 
-    const { senderRole, offeredPrice, note } = parsed.data;
+    const { offeredPrice, note } = parsed.data;
+
+    // Cek apakah wtbId ada
+    const wtbListing = await prisma.wtbListing.findUnique({
+      where: { id: wtbId },
+    });
+
+    if (!wtbListing) {
+      return NextResponse.json(
+        { error: `WTB Listing dengan ID ${wtbId} tidak ditemukan.` },
+        { status: 404 },
+      );
+    }
 
     const newNego = await prisma.negosiasi.create({
       data: {
         wtbId,
-        senderRole,
+        senderRole: session.user.role, // <-- Use role from session
         offeredPrice,
         note,
       },

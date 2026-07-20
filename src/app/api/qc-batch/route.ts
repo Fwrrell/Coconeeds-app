@@ -5,19 +5,7 @@ import { auth } from "@/lib/auth";
 import { z } from "zod";
 import crypto from "crypto";
 
-// schema validation
-const panenItemSchema = z.object({
-  panenId: z.string().min(1, "ID Panen wajib disertakan"),
-  actualWeight: z.coerce.number().positive("Berat aktual harus bernilai positif"),
-  grade: z.string().min(1, "Grade wajib diisi"),
-  moisture: z.coerce.number().nonnegative("Kadar air tidak boleh negatif"),
-  basePricePerKg: z.coerce.number().positive("Harga dasar harus bernilai positif"),
-});
-
-const qcBatchSchema = z.object({
-  type: z.string().min(1, "Tipe batch wajib diisi"),
-  panenList: z.array(panenItemSchema).min(1, "Daftar hasil panen tidak boleh kosong"),
-});
+import { qcBatchSchema } from "@/lib/validations/qc-batch.schema";
 
 export async function POST(req: Request) {
   try {
@@ -50,6 +38,24 @@ export async function POST(req: Request) {
     }
 
     const { type, panenList } = parsed.data;
+
+    // Cek apakah semua panenId yang diberikan ada di database
+    const panenIds = panenList.map((p) => p.panenId);
+    const existingPanens = await prisma.panen.findMany({
+      where: {
+        id: { in: panenIds },
+      },
+    });
+
+    if (existingPanens.length !== panenIds.length) {
+      const foundIds = existingPanens.map((p) => p.id);
+      const notFoundIds = panenIds.filter((id) => !foundIds.includes(id));
+      return NextResponse.json(
+        { error: `Panen dengan ID berikut tidak ditemukan: ${notFoundIds.join(", ")}` },
+        { status: 404 },
+      );
+    }
+
 
     const result = await prisma.$transaction(async (tx) => {
       // total barang aktual dari seluruh barang yang digabung

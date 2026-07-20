@@ -4,16 +4,7 @@ import prisma from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
 
-// schema validation
-const panenSchema = z.object({
-  petaniId: z.string().min(1, "ID Petani wajib diisi"),
-  type: z.string().min(1, "Tipe hasil panen wajib diisi"), // KOPRA | SABUT | TEMPURUNG
-  expectedWeight: z.coerce.number().positive("Estimasi berat harus lebih besar dari 0"),
-  tanggalPanen: z.coerce.date({ message: "Tanggal panen tidak valid" }),
-  pengirimanMethod: z.nativeEnum(PengirimanMethod, {
-    errorMap: () => ({ message: "Metode pengiriman tidak valid" }),
-  }),
-});
+import { panenSchema } from "@/lib/validations/panen.schema";
 
 export async function POST(req: Request) {
   try {
@@ -39,10 +30,19 @@ export async function POST(req: Request) {
 
     const { petaniId, type, expectedWeight, tanggalPanen, pengirimanMethod } = parsed.data;
 
-    // role & authorization check: petani hanya boleh submit data dia sendiri, admin bebas
+    // role & authorization check
+    // 1. ADMIN can create for any petani
+    // 2. PETANI can only create for themselves
+    // 3. Other roles (e.g., PERUSAHAAN) are not allowed
     if (session.user.role === "PETANI" && session.user.id !== petaniId) {
       return NextResponse.json(
         { error: "Anda tidak memiliki akses untuk membuat data panen atas nama user lain." },
+        { status: 403 },
+      );
+    }
+    if (session.user.role !== "PETANI" && session.user.role !== "ADMIN") {
+      return NextResponse.json(
+        { error: "Anda tidak memiliki izin untuk membuat data panen." },
         { status: 403 },
       );
     }
@@ -135,7 +135,7 @@ export async function GET(req: Request) {
     const dataPanen = await prisma.panen.findMany(queryOptions);
 
     return NextResponse.json(
-      { message: "Berhasil mengambil data panen.", dataPanen },
+      { message: "Berhasil mengambil data panen.", data: dataPanen },
       { status: 200 },
     );
   } catch (err) {

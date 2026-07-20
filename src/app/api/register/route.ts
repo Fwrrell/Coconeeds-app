@@ -1,21 +1,26 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import bcrypt from "bcrypt";
+import { z } from "zod";
+
+
+import { registerSchema } from "@/lib/validations/register.schema";
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { name, phoneNumber, pin } = body;
 
-    // input validation
-    if (!name || !phoneNumber || !pin) {
+    // Zod validation
+    const parsed = registerSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        {
-          message: "Data tidak Lengkap. Mohon isi semua field.",
-        },
+        { error: parsed.error.issues[0].message },
         { status: 400 },
       );
     }
+
+    const { name, phoneNumber, pin } = parsed.data;
+
 
     // cek dupe account
     const existingUser = await prisma.user.findUnique({
@@ -24,7 +29,7 @@ export async function POST(req: Request) {
     if (existingUser) {
       return NextResponse.json(
         {
-          message: "Nomor HP ini sudah terdaftar. Silahkan login.",
+          error: "Nomor HP ini sudah terdaftar. Silahkan login.",
         },
         { status: 409 },
       );
@@ -45,13 +50,13 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json(
-      { message: "Pendaftaraan berhasil!", userId: newUser.id },
+      { message: "Pendaftaraan berhasil!", data: { userId: newUser.id } },
       { status: 201 },
     );
   } catch (err) {
     console.error("REGISTER_API_ERROR:", err);
     return NextResponse.json(
-      { message: "Terjadi kesalahan pada sistem. Coba beberapa saat lagi." },
+      { error: "Terjadi kesalahan pada sistem. Coba beberapa saat lagi." },
       { status: 500 },
     );
   }

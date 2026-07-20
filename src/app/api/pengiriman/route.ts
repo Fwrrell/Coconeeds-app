@@ -1,15 +1,10 @@
+import { PanenStatus } from "@prisma/client";
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
 
-// schema validation
-const pengirimanSchema = z.object({
-  namaKapal: z.string().min(1, "Nama kapal wajib diisi"),
-  rute: z.string().min(1, "Rute pengiriman wajib diisi"),
-  totalBiaya: z.coerce.number().positive("Total biaya harus bernilai positif"),
-  batchIds: z.array(z.string().min(1)).min(1, "Minimal pilih 1 batch pengiriman"),
-});
+import { pengirimanSchema } from "@/lib/validations/pengiriman.schema";
 
 export async function POST(req: Request) {
   try {
@@ -43,9 +38,14 @@ export async function POST(req: Request) {
 
     const { namaKapal, rute, totalBiaya, batchIds } = parsed.data;
 
+    
     // ambil data batch beserta data panen dan lokasi petani
     const batches = await prisma.batch.findMany({
-      where: { id: { in: batchIds } },
+      where: {
+        id: { in: batchIds },
+        status: PanenStatus.IN_WAREHOUSE,
+        pengirimanKapalId: null,
+      },
       include: {
         panens: {
           include: {
@@ -57,12 +57,17 @@ export async function POST(req: Request) {
       },
     });
 
-    if (batches.length === 0) {
+    // Validasi jika ada batch yang tidak valid atau sudah dikirim
+    if (batches.length !== batchIds.length) {
       return NextResponse.json(
-        { error: "Batch tidak ditemukan." },
-        { status: 404 },
+        {
+          error:
+            "Beberapa Batch ID tidak valid, tidak ditemukan, atau sudah dalam pengiriman lain. Hanya batch dengan status 'IN_WAREHOUSE' yang dapat diproses.",
+        },
+        { status: 400 },
       );
     }
+
 
     // logic calculate: kelompokkan berat berdasarkan lokasi
     let totalWeightKapal = 0;
@@ -83,6 +88,15 @@ export async function POST(req: Request) {
         }
         locationWeights[lokasiDesa] += beratPanen;
       }
+    }
+
+    
+    // Guard clause to prevent division by zero
+    if (totalWeightKapal <= 0) {
+      return NextResponse.json(
+        { error: "Total berat dari semua batch tidak boleh nol atau negatif." },
+        { status: 400 },
+      );
     }
 
     // execute db

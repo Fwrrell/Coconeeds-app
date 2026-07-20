@@ -27,12 +27,33 @@ export async function POST(
 
     const { batchId } = await params;
 
+
     if (!batchId) {
       return NextResponse.json(
         { error: "Batch ID wajib disertakan." },
         { status: 400 },
       );
     }
+
+    // Authorization check: PERUSAHAAN can only settle their own batch
+    if (session.user.role === "PERUSAHAAN") {
+      const batch = await prisma.batch.findUnique({
+        where: { id: batchId },
+        include: { wtbListing: true },
+      });
+
+      if (!batch) {
+        return NextResponse.json({ error: "Batch tidak ditemukan." }, { status: 404 });
+      }
+
+      if (!batch.wtbListing || batch.wtbListing.perusahaanId !== session.user.id) {
+        return NextResponse.json(
+          { error: "Anda tidak memiliki izin untuk melakukan settlement pada batch ini." },
+          { status: 403 },
+        );
+      }
+    }
+
 
     // execute transaction untuk memastikan semua status berubah semua
     const result = await prisma.$transaction(async (tx) => {
