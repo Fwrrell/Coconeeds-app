@@ -12,14 +12,17 @@ export async function GET() {
         },
       },
       orderBy: {
-        name: 'asc'
-      }
+        name: "asc",
+      },
     });
-    return NextResponse.json({ data: kopdes, message: "Kopdes berhasil diambil." });
+    return NextResponse.json({
+      data: kopdes,
+      message: "Kopdes berhasil diambil.",
+    });
   } catch (error) {
     return NextResponse.json(
       { error: "Terjadi kesalahan internal." },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -38,15 +41,15 @@ export async function POST(req: Request) {
 
     return NextResponse.json(
       { data: newKopdes, message: "Kopdes berhasil dibuat." },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.errors }, { status: 400 });
+      return NextResponse.json({ error: error.issues }, { status: 400 });
     }
     return NextResponse.json(
       { error: "Terjadi kesalahan internal." },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
