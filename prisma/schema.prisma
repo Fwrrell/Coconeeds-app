@@ -1,8 +1,6 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -18,7 +16,7 @@ enum Role {
 }
 
 model User {
-  id            String    @id @default(uuid())
+  id            String    @id @default(cuid())
   name          String?
   phoneNumber   String?   @unique
   pin           String?
@@ -26,15 +24,34 @@ model User {
   emailVerified DateTime?
   image         String?
   role          Role      @default(PETANI)
-  location      String?
+  kopdesId      String?
+  kopdes        Kopdes?   @relation(fields: [kopdesId], references: [id])
   ecoPoints     Int       @default(0)
+  isVerified    Boolean   @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  accounts    Account[]
+  
+  accounts Account[]
   panens      Panen[]
   wtbListings WtbListing[]
+}
+
+model Kopdes {
+  id        String   @id @default(uuid())
+  name      String
+  region    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users User[]
+}
+
+model SystemSetting {
+  id                String   @id @default("global_config")
+  autoVerifyNewUser Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 }
 
 model Account {

@@ -3,19 +3,20 @@
 import { useState, useEffect } from "react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
 
 export function AutoVerifySwitch() {
-  const [isAutoVerify, setIsAutoVerify] = useState(true);
+  const [isEnabled, setIsEnabled] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchSettings = async () => {
       try {
         const res = await fetch("/api/settings");
-        const data = await res.json();
-        setIsAutoVerify(data.autoVerifyPetani);
+        const { data } = await res.json();
+        setIsEnabled(data.autoVerifyNewUser);
       } catch (error) {
-        console.error("Gagal fetch settings", error);
+        toast.error("Gagal memuat status auto-verify.");
       } finally {
         setIsLoading(false);
       }
@@ -23,33 +24,40 @@ export function AutoVerifySwitch() {
     fetchSettings();
   }, []);
 
-  const toggleSwitch = async (checked: boolean) => {
-    setIsAutoVerify(checked);
-
+  const handleToggle = async (checked: boolean) => {
+    setIsEnabled(checked);
     try {
-      await fetch("/api/settings", {
+      const res = await fetch("/api/settings", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ autoVerifyPetani: checked }),
+        body: JSON.stringify({ autoVerifyNewUser: checked }),
       });
+      if (!res.ok) throw new Error();
+      
+      const { data } = await res.json();
+      toast.success(`Auto-verifikasi ${data.autoVerifyNewUser ? "diaktifkan" : "dinonaktifkan"}.`);
     } catch (error) {
-      console.error("Gagal update setting", error);
-      setIsAutoVerify(!checked);
+      toast.error("Gagal mengubah pengaturan.");
+      // Revert state on failure
+      setIsEnabled(!checked);
     }
   };
 
-  if (isLoading) return <div className="text-sm text-gray-500">Memuat...</div>;
+  if (isLoading) {
+    return <div className="flex items-center space-x-2 h-10">
+        <div className="w-24 h-4 bg-gray-200 rounded animate-pulse"></div>
+    </div>;
+  }
 
   return (
-    <div className="flex items-center space-x-2 bg-slate-100 p-2 rounded-md border">
+    <div className="flex items-center space-x-2">
       <Switch
-        id="auto-verify-mode"
-        checked={isAutoVerify}
-        onCheckedChange={toggleSwitch}
+        id="auto-verify-switch"
+        checked={isEnabled}
+        onCheckedChange={handleToggle}
+        disabled={isLoading}
       />
-      <Label htmlFor="auto-verify-mode" className="font-medium cursor-pointer">
-        Auto-Verify Mode {isAutoVerify ? "✅" : "❌"}
-      </Label>
+      <Label htmlFor="auto-verify-switch">Auto-Verify</Label>
     </div>
   );
 }

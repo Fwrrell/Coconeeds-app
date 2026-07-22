@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 
+// GET /api/settings
+// Mengambil atau membuat pengaturan global
 export async function GET() {
   try {
     const setting = await prisma.systemSetting.upsert({
@@ -8,47 +10,45 @@ export async function GET() {
       update: {},
       create: {
         id: "global_config",
-        autoVerifyPetani: true,
+        autoVerifyNewUser: false,
       },
     });
-
+    return NextResponse.json({ data: setting });
+  } catch (error) {
     return NextResponse.json(
-      { message: "Pengaturan berhasil ditampilkan.", data: setting },
-      { status: 201 },
-    );
-  } catch (err) {
-    console.error("Error in GET /api/settings:", err);
-    return NextResponse.json(
-      { error: "Terjadi kesalahan pada sistem." },
-      { status: 500 },
+      { error: "Gagal mengambil pengaturan sistem." },
+      { status: 500 }
     );
   }
 }
 
-export async function PATCH(request: Request) {
+// PATCH /api/settings
+// Memperbarui pengaturan global
+export async function PATCH(req: Request) {
   try {
-    const body = await request.json();
-    const { autoVerifyPetani } = body;
+    const body = await req.json();
+    const { autoVerifyNewUser } = body;
+
+    if (typeof autoVerifyNewUser !== "boolean") {
+      return NextResponse.json(
+        { error: "Nilai autoVerifyNewUser harus boolean." },
+        { status: 400 }
+      );
+    }
 
     const updatedSetting = await prisma.systemSetting.update({
       where: { id: "global_config" },
-      data: { autoVerifyPetani },
+      data: { autoVerifyNewUser },
     });
 
+    return NextResponse.json({
+      data: updatedSetting,
+      message: "Pengaturan berhasil diperbarui.",
+    });
+  } catch (error) {
     return NextResponse.json(
-      {
-        message: "Pengaturan berhasil diperbarui.",
-        setting: updatedSetting,
-      },
-      {
-        status: 201,
-      },
-    );
-  } catch (err) {
-    console.error("Error in PATCH /api/settings:", err);
-    return NextResponse.json(
-      { error: "Terjadi kesalahan pada sistem" },
-      { status: 500 },
+      { error: "Gagal memperbarui pengaturan." },
+      { status: 500 }
     );
   }
 }

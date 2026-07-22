@@ -30,6 +30,7 @@ import {
   FileChartColumnIcon,
   FileIcon,
   CommandIcon,
+  StoreIcon,
 } from "lucide-react";
 
 const data = {
@@ -48,6 +49,11 @@ const data = {
       title: "Manajemen Pengguna",
       url: "/admin/users",
       icon: <UsersIcon />,
+    },
+    {
+      title: "Manajemen Kopdes",
+      url: "/admin/kopdes",
+      icon: <StoreIcon />,
     },
   ],
   // navClouds: [

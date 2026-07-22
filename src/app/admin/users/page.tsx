@@ -12,6 +12,24 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -32,6 +50,8 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import {
   MoreHorizontal,
   PlusCircle,
@@ -43,9 +63,13 @@ import {
   DollarSign,
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { AutoVerifySwitch } from "@/components/admin/AutoVerifySwitch";
+import { AutoVerifySwitch } from "@/components/admin/AutoVerifySwitch"; // DIKEMBALIKAN
 import { useState, useEffect } from "react";
+import { useForm, SubmitHandler, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { toast } from "sonner";
+import { registerSchema } from "@/lib/validations/register.schema";
 
 const getInitials = (name: string) => {
   const safeName = name || "Unknown";
@@ -56,85 +80,234 @@ const getInitials = (name: string) => {
   return safeName.substring(0, 2);
 };
 
+const editFarmerSchema = registerSchema.omit({ pin: true }).extend({
+  isVerified: z.boolean().optional(),
+});
+
+type Kopdes = {
+  id: string;
+  name: string;
+};
+
 type Farmer = {
   id: string;
   name: string;
   phoneNumber: string;
-  location: string;
   isVerified: boolean;
   ecoPoints: number;
   harvests?: number;
+  kopdes: Kopdes | null;
 };
+
+type RegisterFormValues = z.infer<typeof registerSchema>;
+type EditFormValues = z.infer<typeof editFarmerSchema>;
 
 export default function PetaniManagementPage() {
   const [farmers, setFarmers] = useState<Farmer[]>([]);
+  const [allKopdes, setAllKopdes] = useState<Kopdes[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [filterLocation, setFilterLocation] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
 
-  const [isSheetOpen, setIsSheetOpen] = useState(false);
-  const [selectedFarmer, setSelectedFarmer] = useState<Farmer | null>(null);
+  const [isDetailSheetOpen, setIsDetailSheetOpen] = useState(false);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isVerifyDialogOpen, setIsVerifyDialogOpen] = useState(false);
 
-  const fetchFarmers = async () => {
+  const [selectedFarmer, setSelectedFarmer] = useState<Farmer | null>(null);
+  const [selectedKopdesId, setSelectedKopdesId] = useState<string | null>(null);
+
+  const {
+    control: controlAdd,
+    register: registerAdd,
+    handleSubmit: handleSubmitAdd,
+    formState: { errors: errorsAdd, isSubmitting: isSubmittingAdd },
+    reset: resetAdd,
+  } = useForm<RegisterFormValues>({
+    resolver: zodResolver(registerSchema),
+    defaultValues: {
+      name: "",
+      phoneNumber: "",
+      pin: "",
+      kopdesId: "", // Ganti menjadi string kosong
+    },
+  });
+
+  const {
+    control: controlEdit,
+    register: registerEdit,
+    handleSubmit: handleSubmitEdit,
+    formState: { errors: errorsEdit, isSubmitting: isSubmittingEdit },
+    reset: resetEdit,
+    setValue: setEditValue,
+  } = useForm<EditFormValues>({
+    resolver: zodResolver(editFarmerSchema),
+  });
+
+  useEffect(() => {
+    if (selectedFarmer && isEditDialogOpen) {
+      setEditValue("name", selectedFarmer.name);
+      setEditValue("phoneNumber", selectedFarmer.phoneNumber);
+      setEditValue("isVerified", selectedFarmer.isVerified);
+      setEditValue("kopdesId", selectedFarmer.kopdes?.id || "");
+    }
+  }, [selectedFarmer, isEditDialogOpen, setEditValue]);
+
+  const fetchInitialData = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch("/api/users?role=PETANI");
-      const responseData = await res.json();
+      const [farmersRes, kopdesRes] = await Promise.all([
+        fetch("/api/users?role=PETANI"),
+        fetch("/api/kopdes"),
+      ]);
 
-      console.log("Response dari API /users:", responseData);
+      const farmersResponseData = await farmersRes.json();
+      const kopdesResponseData = await kopdesRes.json();
 
-      if (Array.isArray(responseData)) {
-        setFarmers(responseData);
-      } else if (responseData && Array.isArray(responseData.data)) {
-        setFarmers(responseData.data);
-      } else {
-        console.warn("Format data tidak dikenali:", responseData);
-        setFarmers([]);
-      }
+      setFarmers(
+        Array.isArray(farmersResponseData.data) ? farmersResponseData.data : [],
+      );
+      setAllKopdes(
+        Array.isArray(kopdesResponseData.data) ? kopdesResponseData.data : [],
+      );
     } catch (err) {
       console.error("Gagal menarik data", err);
-      toast.error("Gagal memuat data petani.");
+      toast.error("Gagal memuat data awal.");
       setFarmers([]);
+      setAllKopdes([]);
     } finally {
       setIsLoading(false);
     }
   };
 
+  const refreshFarmers = async () => {
+    try {
+      const res = await fetch("/api/users?role=PETANI");
+      const responseData = await res.json();
+      setFarmers(Array.isArray(responseData.data) ? responseData.data : []);
+    } catch (err) {
+      console.error("Gagal merefresh data petani:", err);
+      toast.error("Gagal merefresh data petani.");
+    }
+  };
+
   useEffect(() => {
-    fetchFarmers();
+    fetchInitialData();
   }, []);
 
-  const handleVerify = async (farmerId: string) => {
+  const handleCreateFarmer: SubmitHandler<RegisterFormValues> = async (
+    data,
+  ) => {
     try {
-      const res = await fetch(`/api/users/${farmerId}/verify`, {
+      const res = await fetch("/api/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Gagal membuat akun petani.");
+      }
+      toast.success("Akun petani berhasil dibuat!");
+      resetAdd({ name: "", phoneNumber: "", pin: "", kopdesId: "" });
+      setIsAddDialogOpen(false);
+      refreshFarmers();
+    } catch (error) {
+      if (error instanceof Error) {
+        toast.error(error.message);
+      }
+    }
+  };
+
+  const handleUpdateFarmer: SubmitHandler<EditFormValues> = async (data) => {
+    if (!selectedFarmer) return;
+    try {
+      const res = await fetch(`/api/users/${selectedFarmer.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ isVerified: true }),
+        body: JSON.stringify(data),
       });
-      if (res.ok) {
-        toast.success("Petani berhasil diverifikasi!");
-        fetchFarmers();
-      } else {
-        toast.error("Gagal memverifikasi petani");
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Gagal memperbarui data petani.");
       }
+      toast.success("Data petani berhasil diperbarui!");
+      resetEdit();
+      setIsEditDialogOpen(false);
+      refreshFarmers();
     } catch (error) {
-      toast.error("Gagal memverifikasi petani");
+      if (error instanceof Error) {
+        toast.error(error.message);
+      }
+    }
+  };
+
+  const handleVerify = (farmer: Farmer) => {
+    setSelectedFarmer(farmer);
+    setIsVerifyDialogOpen(true);
+  };
+
+  const handleConfirmVerification = async () => {
+    if (!selectedFarmer || !selectedKopdesId) {
+      toast.error("Silakan pilih Kopdes terlebih dahulu.");
+      return;
+    }
+    try {
+      const res = await fetch(`/api/users/${selectedFarmer.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isVerified: true, kopdesId: selectedKopdesId }),
+      });
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Gagal memverifikasi petani.");
+      }
+      toast.success("Petani berhasil diverifikasi!");
+      refreshFarmers();
+      setIsVerifyDialogOpen(false);
+      setSelectedKopdesId(null);
+    } catch (error) {
+      if (error instanceof Error) {
+        toast.error(error.message);
+      }
+    }
+  };
+
+  const confirmDelete = (farmer: Farmer) => {
+    setSelectedFarmer(farmer);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!selectedFarmer) return;
+    try {
+      const res = await fetch(`/api/users/${selectedFarmer.id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Gagal menghapus petani.");
+      }
+      toast.success(`Akun untuk ${selectedFarmer.name} berhasil dihapus.`);
+      refreshFarmers();
+      setIsDeleteDialogOpen(false);
+    } catch (error) {
+      if (error instanceof Error) {
+        toast.error(error.message);
+      }
     }
   };
 
   const handleViewDetails = (farmer: Farmer) => {
     setSelectedFarmer(farmer);
-    setIsSheetOpen(true);
+    setIsDetailSheetOpen(true);
   };
-
   const handleEdit = (farmer: Farmer) => {
-    toast.info(`Edit petani: ${farmer.name}`);
-  };
-
-  const handleDelete = (farmer: Farmer) => {
-    toast.error(`Hapus petani: ${farmer.name}`);
+    setSelectedFarmer(farmer);
+    setIsEditDialogOpen(true);
   };
 
   const safeFarmers = Array.isArray(farmers) ? farmers : [];
@@ -143,7 +316,7 @@ export default function PetaniManagementPage() {
       farmer.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       farmer.phoneNumber?.includes(searchQuery);
     const matchLocation =
-      filterLocation === "all" || farmer.location === filterLocation;
+      filterLocation === "all" || farmer.kopdes?.id === filterLocation;
     const matchStatus =
       filterStatus === "all" ||
       (filterStatus === "verified" ? farmer.isVerified : !farmer.isVerified);
@@ -156,20 +329,296 @@ export default function PetaniManagementPage() {
 
   return (
     <>
-      <div className="flex flex-col gap-6 px-4 md:px-6">
+      <div className="flex flex-col gap-6 px-4 md:px-6 py-4">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold tracking-tight">
             Manajemen Petani
           </h1>
           <div className="flex items-center gap-4">
-            <AutoVerifySwitch />
-            <Button>
+            <AutoVerifySwitch /> {/* DIKEMBALIKAN */}
+            <Button onClick={() => setIsAddDialogOpen(true)}>
               <PlusCircle className="mr-2 h-4 w-4" />
               Tambah Petani
             </Button>
           </div>
         </div>
 
+        {/* --- DIALOGS --- */}
+        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+          <DialogContent className="sm:max-w-[425px]">
+            <form onSubmit={handleSubmitAdd(handleCreateFarmer)}>
+              <DialogHeader>
+                <DialogTitle>Buat Akun Petani Baru</DialogTitle>
+                <DialogDescription>
+                  Status verifikasi petani baru akan mengikuti pengaturan
+                  Auto-Verify.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="add-name" className="text-right">
+                    Nama
+                  </Label>
+                  <Input
+                    id="add-name"
+                    {...registerAdd("name")}
+                    className="col-span-3"
+                  />
+                  {errorsAdd.name && (
+                    <p className="col-span-4 text-xs text-red-500 text-right">
+                      {errorsAdd.name.message}
+                    </p>
+                  )}
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="add-phoneNumber" className="text-right">
+                    No. HP
+                  </Label>
+                  <Input
+                    id="add-phoneNumber"
+                    {...registerAdd("phoneNumber")}
+                    className="col-span-3"
+                    placeholder="+62812..."
+                  />
+                  {errorsAdd.phoneNumber && (
+                    <p className="col-span-4 text-xs text-red-500 text-right">
+                      {errorsAdd.phoneNumber.message}
+                    </p>
+                  )}
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="add-pin" className="text-right">
+                    PIN
+                  </Label>
+                  <Input
+                    id="add-pin"
+                    type="password"
+                    {...registerAdd("pin")}
+                    className="col-span-3"
+                    maxLength={6}
+                  />
+                  {errorsAdd.pin && (
+                    <p className="col-span-4 text-xs text-red-500 text-right">
+                      {errorsAdd.pin.message}
+                    </p>
+                  )}
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="add-kopdes" className="text-right">
+                    Kopdes
+                  </Label>
+                  <Controller
+                    name="kopdesId"
+                    control={controlAdd}
+                    render={({ field }) => (
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value}
+                      >
+                        <SelectTrigger className="col-span-3">
+                          <SelectValue placeholder="Pilih Kopdes...">
+                            {field.value
+                              ? allKopdes.find((k) => k.id === field.value)
+                                  ?.name
+                              : "Pilih Kopdes..."}
+                          </SelectValue>
+                        </SelectTrigger>
+                        <SelectContent>
+                          {allKopdes.map((k) => (
+                            <SelectItem key={k.id} value={k.id}>
+                              {k.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                  {errorsAdd.kopdesId && (
+                    <p className="col-span-4 text-xs text-red-500 text-right">
+                      {errorsAdd.kopdesId.message}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <DialogFooter>
+                <Button type="submit" disabled={isSubmittingAdd}>
+                  {isSubmittingAdd ? "Menyimpan..." : "Simpan Akun"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent className="sm:max-w-[425px]">
+            <form onSubmit={handleSubmitEdit(handleUpdateFarmer)}>
+              <DialogHeader>
+                <DialogTitle>Edit Data Petani</DialogTitle>
+                <DialogDescription>
+                  Perbarui detail petani di bawah ini.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="edit-name" className="text-right">
+                    Nama
+                  </Label>
+                  <Input
+                    id="edit-name"
+                    {...registerEdit("name")}
+                    className="col-span-3"
+                  />
+                  {errorsEdit.name && (
+                    <p className="col-span-4 text-xs text-red-500 text-right">
+                      {errorsEdit.name.message}
+                    </p>
+                  )}
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="edit-phoneNumber" className="text-right">
+                    No. HP
+                  </Label>
+                  <Input
+                    id="edit-phoneNumber"
+                    {...registerEdit("phoneNumber")}
+                    className="col-span-3"
+                    placeholder="+62812..."
+                  />
+                  {errorsEdit.phoneNumber && (
+                    <p className="col-span-4 text-xs text-red-500 text-right">
+                      {errorsEdit.phoneNumber.message}
+                    </p>
+                  )}
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="edit-kopdes" className="text-right">
+                    Kopdes
+                  </Label>
+                  <Controller
+                    name="kopdesId"
+                    control={controlEdit}
+                    render={({ field }) => (
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
+                        <SelectTrigger className="col-span-3">
+                          <SelectValue placeholder="Pilih Kopdes...">
+                            {field.value
+                              ? allKopdes.find((k) => k.id === field.value)
+                                  ?.name
+                              : "Tidak ada"}
+                          </SelectValue>
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">Tidak ada</SelectItem>
+                          {allKopdes.map((k) => (
+                            <SelectItem key={k.id} value={k.id}>
+                              {k.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="isVerified" className="text-right">
+                    Terverifikasi
+                  </Label>
+                  <Controller
+                    name="isVerified"
+                    control={controlEdit}
+                    render={({ field }) => (
+                      <Switch
+                        id="isVerified"
+                        className="col-span-3"
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    )}
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button type="submit" disabled={isSubmittingEdit}>
+                  {isSubmittingEdit ? "Memperbarui..." : "Simpan Perubahan"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+
+        <AlertDialog
+          open={isDeleteDialogOpen}
+          onOpenChange={setIsDeleteDialogOpen}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>
+                Apakah Anda benar-benar yakin?
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                Tindakan ini akan menghapus akun petani secara permanen dari
+                server.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Batal</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDelete}>
+                Lanjutkan
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        <Dialog open={isVerifyDialogOpen} onOpenChange={setIsVerifyDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Verifikasi & Pilih Kopdes</DialogTitle>
+              <DialogDescription>
+                Pilih Kopdes untuk petani{" "}
+                <span className="font-bold">{selectedFarmer?.name}</span> untuk
+                menyelesaikan verifikasi.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+              <Label htmlFor="kopdes-select">Koperasi Desa</Label>
+              <Select
+                onValueChange={setSelectedKopdesId}
+                value={selectedKopdesId || ""}
+              >
+                <SelectTrigger id="kopdes-select">
+                  <SelectValue placeholder="Pilih Kopdes...">
+                    {selectedKopdesId
+                      ? allKopdes.find((k) => k.id === selectedKopdesId)?.name
+                      : "Pilih Kopdes..."}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {allKopdes.map((kopdes) => (
+                    <SelectItem key={kopdes.id} value={kopdes.id}>
+                      {kopdes.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setIsVerifyDialogOpen(false)}
+              >
+                Batal
+              </Button>
+              <Button onClick={handleConfirmVerification}>
+                Konfirmasi Verifikasi
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* --- DASHBOARD CARDS & TABLE --- */}
         <div className="grid gap-4 md:grid-cols-3">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -233,19 +682,19 @@ export default function PetaniManagementPage() {
                 onValueChange={(value) => setFilterLocation(value ?? "all")}
               >
                 <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Lokasi / Kopdes" />
+                  <SelectValue placeholder="Lokasi / Kopdes">
+                    {filterLocation === "all"
+                      ? "Semua Lokasi"
+                      : allKopdes.find((k) => k.id === filterLocation)?.name}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Semua Lokasi</SelectItem>
-                  <SelectItem value="Kopdes Merah Putih Aru">
-                    Kopdes Merah Putih Aru
-                  </SelectItem>
-                  <SelectItem value="Kopdes Tunas Harapan">
-                    Kopdes Tunas Harapan
-                  </SelectItem>
-                  <SelectItem value="Kopdes Jaya Bersama">
-                    Kopdes Jaya Bersama
-                  </SelectItem>
+                  {allKopdes.map((k) => (
+                    <SelectItem key={k.id} value={k.id}>
+                      {k.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               <Select
@@ -262,7 +711,6 @@ export default function PetaniManagementPage() {
                 </SelectContent>
               </Select>
             </div>
-
             <div className="rounded-md border">
               <Table>
                 <TableHeader>
@@ -301,7 +749,9 @@ export default function PetaniManagementPage() {
                           </div>
                         </TableCell>
                         <TableCell>{farmer.phoneNumber}</TableCell>
-                        <TableCell>{farmer.location}</TableCell>
+                        <TableCell>
+                          {farmer.kopdes?.name || "Belum diatur"}
+                        </TableCell>
                         <TableCell>
                           <Badge
                             variant={
@@ -321,17 +771,15 @@ export default function PetaniManagementPage() {
                             {!farmer.isVerified && (
                               <Button
                                 size="sm"
-                                onClick={() => handleVerify(farmer.id)}
+                                onClick={() => handleVerify(farmer)}
                               >
                                 Verifikasi
                               </Button>
                             )}
                             <DropdownMenu>
-                              <DropdownMenuTrigger>
-                                <Button variant="ghost" className="h-8 w-8 p-0">
-                                  <span className="sr-only">Buka menu</span>
-                                  <MoreHorizontal className="h-4 w-4" />
-                                </Button>
+                              <DropdownMenuTrigger className="flex items-center rounded-full p-2 hover:bg-gray-100 dark:hover:bg-gray-800">
+                                <span className="sr-only">Buka menu</span>
+                                <MoreHorizontal className="h-4 w-4" />
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
                                 <DropdownMenuItem
@@ -345,11 +793,11 @@ export default function PetaniManagementPage() {
                                   Edit
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
-                                  onClick={() => handleDelete(farmer)}
+                                  onClick={() => confirmDelete(farmer)}
                                   className="text-red-600"
                                 >
                                   Hapus
-                                </DropdownMenuItem>{" "}
+                                </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </div>
@@ -364,7 +812,7 @@ export default function PetaniManagementPage() {
         </Card>
       </div>
 
-      <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+      <Sheet open={isDetailSheetOpen} onOpenChange={setIsDetailSheetOpen}>
         <SheetContent className="w-[400px] sm:w-[540px]">
           {selectedFarmer && (
             <>
@@ -387,7 +835,7 @@ export default function PetaniManagementPage() {
                   {selectedFarmer.phoneNumber}
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  {selectedFarmer.location}
+                  {selectedFarmer.kopdes?.name || "Kopdes belum diatur"}
                 </p>
               </div>
               <div className="mt-6 grid grid-cols-2 gap-4">
