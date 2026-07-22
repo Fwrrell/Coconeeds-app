@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import bcrypt from "bcrypt";
-import { z } from "zod";
-
 
 import { registerSchema } from "@/lib/validations/register.schema";
 
@@ -21,7 +19,6 @@ export async function POST(req: Request) {
 
     const { name, phoneNumber, pin } = parsed.data;
 
-
     // cek dupe account
     const existingUser = await prisma.user.findUnique({
       where: { phoneNumber },
@@ -39,6 +36,13 @@ export async function POST(req: Request) {
     const saltRounds = 10;
     const hashedPin = await bcrypt.hash(pin, saltRounds);
 
+    // cek status toggle dari db
+    const setting = await prisma.systemSetting.findUnique({
+      where: { id: "global_config" },
+    });
+
+    const isAutoVerify = setting?.autoVerifyPetani ?? true;
+
     // save user ke db
     const newUser = await prisma.user.create({
       data: {
@@ -46,6 +50,7 @@ export async function POST(req: Request) {
         phoneNumber,
         pin: hashedPin,
         role: "PETANI",
+        isVerified: isAutoVerify,
       },
     });
 
