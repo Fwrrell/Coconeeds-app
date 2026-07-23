@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { PengirimanMethod, PanenStatus } from "@prisma/client";
 import prisma from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import { z } from "zod";
 
 import { panenSchema } from "@/lib/validations/panen.schema";
 
@@ -28,7 +27,9 @@ export async function POST(req: Request) {
       );
     }
 
-    const { petaniId, type, expectedWeight, tanggalPanen, pengirimanMethod } = parsed.data;
+    const { petaniId, type, expectedWeight, tanggalPanen, pengirimanMethod } =
+      parsed.data;
+    const kopdesId = (body as { kopdesId?: string }).kopdesId;
 
     // role & authorization check
     // 1. ADMIN can create for any petani
@@ -36,7 +37,10 @@ export async function POST(req: Request) {
     // 3. Other roles (e.g., PERUSAHAAN) are not allowed
     if (session.user.role === "PETANI" && session.user.id !== petaniId) {
       return NextResponse.json(
-        { error: "Anda tidak memiliki akses untuk membuat data panen atas nama user lain." },
+        {
+          error:
+            "Anda tidak memiliki akses untuk membuat data panen atas nama user lain.",
+        },
         { status: 403 },
       );
     }
@@ -59,6 +63,7 @@ export async function POST(req: Request) {
     const newPanen = await prisma.panen.create({
       data: {
         petaniId,
+        kopdesId,
         type,
         expectedWeight,
         tanggalPanen,
@@ -98,15 +103,81 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const petaniId = searchParams.get("petaniId");
     const status = searchParams.get("status");
+    const kopdesId = searchParams.get("kopdesId");
 
     // authorization check: petani hanya boleh melihat riwayat dia sendiri
     if (session.user.role === "PETANI") {
       if (!petaniId || session.user.id !== petaniId) {
         return NextResponse.json(
-          { error: "Anda hanya diperbolehkan melihat riwayat panen Anda sendiri." },
+          {
+            error:
+              "Anda hanya diperbolehkan melihat riwayat panen Anda sendiri.",
+          },
           { status: 403 },
         );
       }
+    }
+
+    // authorization admin: untuk inventory management
+    if (session.user.role === "ADMIN" && kopdesId) {
+      const wherePanen: any = {
+        status: {
+          in: [PanenStatus.PENDING_PICKUP, PanenStatus.PENDING_DROPOFF],
+        },
+      };
+
+      const whereBatch: any = {
+        status: PanenStatus.IN_WAREHOUSE,
+      };
+
+      if (kopdesId !== "ALL") {
+        wherePanen.kopdesId = kopdesId;
+        whereBatch.kopdesId = kopdesId;
+      }
+
+      const [pendingRaw, warehouseRaw] = await Promise.all([
+        prisma.panen.findMany({
+          where: wherePanen,
+          include: { petani: { select: { name: true } } },
+          orderBy: { createdAt: "desc" },
+        }),
+        prisma.batch.findMany({
+          where: whereBatch,
+          include: { panens: { select: { grade: true } } },
+          orderBy: { createdAt: "desc" },
+        }),
+      ]);
+
+      // mapping data sesuai inventory management
+      const formattedPending = pendingRaw.map((p) => ({
+        id: p.id,
+        date: p.tanggalPanen,
+        farmerName: p.petani?.name || "Unknown",
+        type: p.type,
+        declaredWeight: p.expectedWeight,
+        status: p.status,
+      }));
+
+      const formattedWarehouse = warehouseRaw.map((b) => {
+        const batchGrade =
+          b.panens && b.panens.length > 0 ? b.panens[0].grade : "N/A";
+        return {
+          id: b.id,
+          type: b.type,
+          totalWeight: b.totalWeight,
+          grade: batchGrade || "N/A",
+          dateProcessed: b.createdAt,
+          status: b.status,
+        };
+      });
+
+      return NextResponse.json(
+        {
+          pending: formattedPending,
+          warehouse: formattedWarehouse,
+        },
+        { status: 200 },
+      );
     }
 
     const queryOptions: any = {

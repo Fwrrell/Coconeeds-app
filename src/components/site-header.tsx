@@ -79,7 +79,7 @@ export function SiteHeader() {
         {/* Kopdes Switcher */}
         <div className="ml-auto flex w-auto min-w-[180px] max-w-[200px] sm:max-w-[300px] lg:max-w-[400px] justify-end">
           <Select
-            value={activeKopdesId ?? undefined}
+            value={activeKopdesId ?? ""}
             onValueChange={(value) => setActiveKopdes(value ?? "")}
             disabled={isLoading}
           >

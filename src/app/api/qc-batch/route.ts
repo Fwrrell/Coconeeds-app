@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { PanenStatus } from "@prisma/client";
 import prisma from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import { z } from "zod";
 import crypto from "crypto";
 
 import { qcBatchSchema } from "@/lib/validations/qc-batch.schema";
@@ -37,7 +36,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const { type, panenList } = parsed.data;
+    const { type, kopdesId, panenList } = parsed.data;
 
     // Cek apakah semua panenId yang diberikan ada di database
     const panenIds = panenList.map((p) => p.panenId);
@@ -51,11 +50,12 @@ export async function POST(req: Request) {
       const foundIds = existingPanens.map((p) => p.id);
       const notFoundIds = panenIds.filter((id) => !foundIds.includes(id));
       return NextResponse.json(
-        { error: `Panen dengan ID berikut tidak ditemukan: ${notFoundIds.join(", ")}` },
+        {
+          error: `Panen dengan ID berikut tidak ditemukan: ${notFoundIds.join(", ")}`,
+        },
         { status: 404 },
       );
     }
-
 
     const result = await prisma.$transaction(async (tx) => {
       // total barang aktual dari seluruh barang yang digabung
@@ -70,6 +70,7 @@ export async function POST(req: Request) {
           type,
           totalWeight,
           status: PanenStatus.IN_WAREHOUSE,
+          kopdesId,
         },
       });
 
