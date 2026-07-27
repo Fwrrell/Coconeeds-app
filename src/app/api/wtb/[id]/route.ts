@@ -1,18 +1,17 @@
-import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { auth } from '@/lib/auth'; // Import auth dari '@/lib/auth'
-import { Role } from '@prisma/client';
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { auth } from "@/lib/auth";
+import { Role } from "@prisma/client";
 
-// Endpoint PATCH untuk update WtbListing (misal: set status ke DEAL dan dealPrice)
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   try {
-    const session = await auth(); // Gunakan auth() untuk mendapatkan sesi
+    const session = await auth();
 
     if (!session || !session.user || session.user.role !== Role.ADMIN) {
-      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { id } = params;
@@ -23,7 +22,10 @@ export async function PATCH(
     });
 
     if (!wtbListing) {
-      return NextResponse.json({ message: 'WTB Listing not found' }, { status: 404 });
+      return NextResponse.json(
+        { error: "WTB Listing not found" },
+        { status: 404 },
+      );
     }
 
     const updatedWtbListing = await prisma.wtbListing.update({
@@ -34,12 +36,16 @@ export async function PATCH(
       },
     });
 
-    return NextResponse.json({ data: updatedWtbListing, message: 'WTB Listing updated successfully' });
-  } catch (error) {
-    console.error('Error updating WTB Listing:', error);
+    return NextResponse.json({
+      data: updatedWtbListing,
+      message: "WTB Listing updated successfully",
+    });
+  } catch (error: unknown) {
+    console.error("Error updating WTB Listing:", error);
+    const message = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
-      { message: 'Failed to update WTB Listing', error: error.message },
-      { status: 500 }
+      { message: "Failed to update WTB Listing", error: message },
+      { status: 500 },
     );
   }
 }
