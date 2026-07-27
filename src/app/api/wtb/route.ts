@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
+import { WtbStatus } from "@prisma/client";
 
 import { wtbSchema } from "@/lib/validations/wtb.schema";
 
@@ -67,23 +68,32 @@ export async function POST(req: Request) {
   }
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    // auth check
     const session = await auth();
     if (!session || !session.user) {
-      return NextResponse.json(
-        { error: "Autentikasi diperlukan." },
-        { status: 401 },
-      );
+      return NextResponse.json({ error: "Autentikasi diperlukan." }, { status: 401 });
     }
 
-    // ambil semua list WTB yang masih OPEN
+    const { searchParams } = new URL(request.url);
+    const status = searchParams.get("status") as WtbStatus | null;
+
+    const whereClause: { status?: WtbStatus } = {};
+    if (status) {
+      whereClause.status = status;
+    } else {
+      // Jika tidak ada param status, ambil semua kecuali COMPLETED
+      whereClause.status = { not: "COMPLETED" };
+    }
+
     const wtbList = await prisma.wtbListing.findMany({
-      where: { status: "OPEN" },
+      where: whereClause,
       include: {
         perusahaan: {
           select: { name: true },
+        },
+        _count: {
+          select: { negosiasi: true },
         },
       },
       orderBy: { createdAt: "desc" },

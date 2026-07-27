@@ -17,20 +17,13 @@ import {
 } from "@/components/ui/sidebar";
 import {
   LayoutDashboardIcon,
-  ListIcon,
-  ChartBarIcon,
-  FolderIcon,
   UsersIcon,
-  CameraIcon,
-  FileTextIcon,
   Settings2Icon,
   CircleHelpIcon,
-  SearchIcon,
-  DatabaseIcon,
-  FileChartColumnIcon,
-  FileIcon,
   CommandIcon,
   StoreIcon,
+  ShelvingUnitIcon,
+  TruckIcon,
 } from "lucide-react";
 
 const data = {
@@ -54,6 +47,16 @@ const data = {
       title: "Manajemen Kopdes",
       url: "/admin/kopdes",
       icon: <StoreIcon />,
+    },
+    {
+      title: "Manajemen Inventory",
+      url: "/admin/inventory",
+      icon: <ShelvingUnitIcon />,
+    },
+    {
+      title: "Manajemen Logistik",
+      url: "/admin/logistics",
+      icon: <TruckIcon />,
     },
   ],
   // navClouds: [

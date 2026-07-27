@@ -141,6 +141,7 @@ enum WtbStatus {
   OPEN
   DEAL
   COMPLETED
+  CANCELLED
 }
 
 model WtbListing {
@@ -152,6 +153,7 @@ model WtbListing {
   maxPrice     Float
   destination  String
   status       WtbStatus @default(OPEN)
+  dealPrice    Float?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
