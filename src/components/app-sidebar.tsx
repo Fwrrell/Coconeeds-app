@@ -24,6 +24,7 @@ import {
   StoreIcon,
   ShelvingUnitIcon,
   TruckIcon,
+  ShoppingCartIcon,
 } from "lucide-react";
 
 const data = {
@@ -58,55 +59,60 @@ const data = {
       url: "/admin/logistics",
       icon: <TruckIcon />,
     },
+    {
+      title: "Marketplace",
+      url: "/admin/marketplace",
+      icon: <ShoppingCartIcon />,
+    },
   ],
-  // navClouds: [
-  //   {
-  //     title: "Capture",
-  //     icon: <CameraIcon />,
-  //     isActive: true,
-  //     url: "#",
-  //     items: [
-  //       {
-  //         title: "Active Proposals",
-  //         url: "#",
-  //       },
-  //       {
-  //         title: "Archived",
-  //         url: "#",
-  //       },
-  //     ],
-  //   },
-  //   {
-  //     title: "Proposal",
-  //     icon: <FileTextIcon />,
-  //     url: "#",
-  //     items: [
-  //       {
-  //         title: "Active Proposals",
-  //         url: "#",
-  //       },
-  //       {
-  //         title: "Archived",
-  //         url: "#",
-  //       },
-  //     ],
-  //   },
-  //   {
-  //     title: "Prompts",
-  //     icon: <FileTextIcon />,
-  //     url: "#",
-  //     items: [
-  //       {
-  //         title: "Active Proposals",
-  //         url: "#",
-  //       },
-  //       {
-  //         title: "Archived",
-  //         url: "#",
-  //       },
-  //     ],
-  //   },
-  // ],
+  navClouds: [
+    {
+      title: "Capture",
+      // icon: <CameraIcon />,
+      isActive: true,
+      url: "#",
+      items: [
+        {
+          title: "Active Proposals",
+          url: "#",
+        },
+        {
+          title: "Archived",
+          url: "#",
+        },
+      ],
+    },
+    {
+      title: "Proposal",
+      // icon: <FileTextIcon />,
+      url: "#",
+      items: [
+        {
+          title: "Active Proposals",
+          url: "#",
+        },
+        {
+          title: "Archived",
+          url: "#",
+        },
+      ],
+    },
+    {
+      title: "Prompts",
+      // icon: <FileTextIcon />,
+      url: "#",
+      items: [
+        {
+          title: "Active Proposals",
+          url: "#",
+        },
+        {
+          title: "Archived",
+          url: "#",
+        },
+      ],
+    },
+  ],
   navSecondary: [
     {
       title: "Settings",
