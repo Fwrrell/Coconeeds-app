@@ -1,10 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
 import { signIn } from "next-auth/react";
 import { motion } from "framer-motion";
-import { ShieldCheck, Lock, Loader2 } from "lucide-react";
+import { ShieldCheck, Loader2, Sprout } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
 
@@ -18,42 +17,32 @@ export function AdminLoginCard() {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 30 }}
+      initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-      className="flex flex-col items-center"
+      transition={{ duration: 0.3 }}
+      className="flex flex-col items-center w-full font-['Quicksand',sans-serif]"
     >
       {/* Main Card */}
-      <div className="relative w-full overflow-hidden rounded-[2.5rem] bg-white/90 px-8 py-12 shadow-[0_20px_60px_-15px_rgba(40,54,24,0.1)] backdrop-blur-xl border border-white sm:px-12">
-        {/* titik 3x3 */}
-        <div className="absolute top-6 right-8 flex gap-1 opacity-20">
-          <div className="grid grid-cols-3 gap-1.5">
-            {[...Array(9)].map((_, i) => (
-              <div key={i} className="h-1.5 w-1.5 rounded-full bg-[#DDA15E]" />
-            ))}
-          </div>
-        </div>
-
-        <div className="flex flex-col items-center text-center">
+      <div className="w-full bg-white border border-gray-200 rounded-md p-6 sm:p-10 shadow-none space-y-6">
+        <div className="flex flex-col items-center text-center space-y-3">
           {/* Icon Shield */}
-          <div className="relative mb-8 flex h-24 w-24 items-center justify-center rounded-full bg-[#283618] shadow-xl ring-8 ring-[#DDA15E]/20">
-            <ShieldCheck className="h-10 w-10 text-white" strokeWidth={2} />
+          <div className="flex h-14 w-14 items-center justify-center rounded-md bg-[#606C38] text-white">
+            <ShieldCheck className="h-7 w-7" />
           </div>
 
           {/* Teks Header */}
-          <h2 className="font-serif text-3xl font-bold tracking-tight text-[#283618]">
-            Selamat Datang
-          </h2>
-
-          <div className="mt-4 h-1 w-12 rounded-full bg-[#DDA15E]" />
-
-          <p className="mt-6 text-sm leading-relaxed text-[#606C38]">
-            Masuk menggunakan akun Google yang telah diotorisasi untuk mengakses
-            dashboard admin.
-          </p>
+          <div className="space-y-1">
+            <h2 className="text-xl font-bold text-gray-900 tracking-tight">
+              Otentikasi Administrator
+            </h2>
+            <p className="text-xs font-medium text-gray-500 max-w-xs">
+              Masuk menggunakan akun Google terverifikasi untuk mengakses konsol
+              manajemen Coconeeds.
+            </p>
+          </div>
         </div>
 
-        <div className="mt-8 flex flex-col space-y-4">
+        <div className="pt-2">
           <button
             type="button"
             disabled={isLoading}
@@ -61,18 +50,14 @@ export function AdminLoginCard() {
             className={cn(
               buttonVariants({
                 className:
-                  "h-14 w-full rounded-2xl bg-[#283618] text-base font-semibold text-white hover:bg-[#1a2310] transition-colors shadow-lg shadow-[#283618]/20 disabled:opacity-70 disabled:cursor-not-allowed",
+                  "h-11 w-full rounded-md bg-[#606C38] text-xs font-semibold text-white hover:bg-[#283618] transition-colors shadow-none disabled:opacity-70 disabled:cursor-not-allowed",
               }),
             )}
           >
             {isLoading ? (
-              <Loader2 className="mr-2 h-5 w-5 animate-spin text-[#DDA15E]" />
+              <Loader2 className="mr-2 h-4 w-4 animate-spin text-white" />
             ) : (
-              // Icon Google
-              <svg
-                className="mr-3 h-5 w-5 bg-white rounded-full p-0.5"
-                viewBox="0 0 24 24"
-              >
+              <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
                 <path
                   d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
                   fill="#4285F4"
@@ -91,17 +76,16 @@ export function AdminLoginCard() {
                 />
               </svg>
             )}
-            Masuk dengan Google
+            Masuk dengan Google Administrator
           </button>
         </div>
       </div>
 
       {/* Footer */}
-      <div className="mt-12 flex flex-col items-center space-y-2 opacity-80">
-        <Image src="/logo-text.png" alt="Coconeeds" width={100} height={100} />
-        <p className="pt-2 text-sm text-[#606C38]/60">
-          © 2026 Coconeeds. All rights reserved.
-        </p>
+      <div className="mt-6 flex items-center justify-center gap-2 text-gray-400">
+        <Sprout className="h-4 w-4 text-[#606C38]" />
+        <span className="text-xs font-bold text-gray-700">Coconeeds</span>
+        <span className="text-xs text-gray-400">• © 2026</span>
       </div>
     </motion.div>
   );

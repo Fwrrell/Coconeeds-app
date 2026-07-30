@@ -34,7 +34,9 @@ const GrowthBadge = ({ value }: { value: number }) => {
     <Badge
       variant="outline"
       className={cn(
-        isPositive ? "text-green-600 border-green-200" : "text-slate-600 border-slate-200"
+        isPositive
+          ? "text-green-600 border-green-200"
+          : "text-slate-600 border-slate-200",
       )}
     >
       {isPositive ? (
@@ -43,15 +45,15 @@ const GrowthBadge = ({ value }: { value: number }) => {
         <TrendingDownIcon className="mr-1 h-3 w-3" />
       )}
       {isPositive && "+"}
-      {value}{value !== Math.floor(value) ? "%" : ""}
+      {value}
+      {value !== Math.floor(value) ? "%" : ""}
     </Badge>
   );
 };
 
-
 export function SectionCards({ kpi }: SectionCardsProps) {
   return (
-    <div className="grid grid-cols-1 gap-4 px-4 *:data-[slot=card]:bg-linear-to-t *:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card *:data-[slot=card]:shadow-xs lg:px-6 @xl/main:grid-cols-2 @5xl/main:grid-cols-4 dark:*:data-[slot=card]:bg-card">
+    <div className="grid grid-cols-1 gap-4 *:data-[slot=card]:bg-linear-to-t *:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card *:data-[slot=card]:shadow-xs @xl/main:grid-cols-2 @5xl/main:grid-cols-4 dark:*:data-[slot=card]:bg-card">
       {/* CARD 1: Total Petani */}
       <Card className="@container/card">
         <CardHeader>
@@ -59,10 +61,10 @@ export function SectionCards({ kpi }: SectionCardsProps) {
             <Users className="h-4 w-4 text-blue-500" /> Total Petani
           </CardDescription>
           <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            {kpi?.totalPetani.value.toLocaleString('id-ID') ?? "..."}
+            {kpi?.totalPetani.value.toLocaleString("id-ID") ?? "..."}
           </CardTitle>
           <CardAction>
-             <GrowthBadge value={kpi?.totalPetani.growth ?? 0} />
+            <GrowthBadge value={kpi?.totalPetani.growth ?? 0} />
           </CardAction>
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
@@ -80,13 +82,13 @@ export function SectionCards({ kpi }: SectionCardsProps) {
             <Warehouse className="h-4 w-4 text-amber-500" /> Stok Gudang
           </CardDescription>
           <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            {(kpi ? (kpi.kargoGudang.value / 1000).toFixed(1) : "...")}{" "}
+            {kpi ? (kpi.kargoGudang.value / 1000).toFixed(1) : "..."}{" "}
             <span className="text-lg font-normal text-muted-foreground">
               Ton
             </span>
           </CardTitle>
           <CardAction>
-             <GrowthBadge value={kpi?.kargoGudang.growth ?? 0} />
+            <GrowthBadge value={kpi?.kargoGudang.growth ?? 0} />
           </CardAction>
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
@@ -104,7 +106,7 @@ export function SectionCards({ kpi }: SectionCardsProps) {
             <Ship className="h-4 w-4 text-emerald-500" /> Kargo Berlayar
           </CardDescription>
           <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            {(kpi ? (kpi.kargoBerlayar.value / 1000).toFixed(1) : "...")}{" "}
+            {kpi ? (kpi.kargoBerlayar.value / 1000).toFixed(1) : "..."}{" "}
             <span className="text-lg font-normal text-muted-foreground">
               Ton
             </span>
