@@ -2,7 +2,6 @@
 
 import * as React from "react";
 
-import { NavDocuments } from "@/components/nav-documents";
 import { NavMain } from "@/components/nav-main";
 import { NavSecondary } from "@/components/nav-secondary";
 import { NavUser } from "@/components/nav-user";
@@ -16,138 +15,69 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import {
-  LayoutDashboardIcon,
-  UsersIcon,
-  Settings2Icon,
-  CircleHelpIcon,
-  CommandIcon,
-  StoreIcon,
-  ShelvingUnitIcon,
-  TruckIcon,
-  ShoppingCartIcon,
+  LayoutDashboard,
+  Users,
+  Store,
+  Boxes,
+  Truck,
+  ShoppingCart,
+  Settings2,
+  HelpCircle,
+  Sprout,
 } from "lucide-react";
 
 const data = {
   user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
+    name: "Admin Coconeeds",
+    email: "admin@Coconeeds.id",
+    avatar: "",
   },
   navMain: [
     {
       title: "Dashboard",
       url: "/admin",
-      icon: <LayoutDashboardIcon />,
+      icon: <LayoutDashboard className="h-4 w-4 text-[#606C38]" />,
     },
     {
       title: "Manajemen Pengguna",
       url: "/admin/users",
-      icon: <UsersIcon />,
+      icon: <Users className="h-4 w-4 text-[#606C38]" />,
     },
     {
       title: "Manajemen Kopdes",
       url: "/admin/kopdes",
-      icon: <StoreIcon />,
+      icon: <Store className="h-4 w-4 text-[#606C38]" />,
     },
     {
-      title: "Manajemen Inventory",
+      title: "Manajemen Inventaris",
       url: "/admin/inventory",
-      icon: <ShelvingUnitIcon />,
+      icon: <Boxes className="h-4 w-4 text-[#606C38]" />,
     },
     {
       title: "Manajemen Logistik",
       url: "/admin/logistics",
-      icon: <TruckIcon />,
+      icon: <Truck className="h-4 w-4 text-[#606C38]" />,
     },
     {
-      title: "Marketplace",
+      title: "Marketplace B2B",
       url: "/admin/marketplace",
-      icon: <ShoppingCartIcon />,
-    },
-  ],
-  navClouds: [
-    {
-      title: "Capture",
-      // icon: <CameraIcon />,
-      isActive: true,
-      url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Proposal",
-      // icon: <FileTextIcon />,
-      url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Prompts",
-      // icon: <FileTextIcon />,
-      url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
-      ],
+      icon: <ShoppingCart className="h-4 w-4 text-[#606C38]" />,
     },
   ],
   navSecondary: [
     {
-      title: "Settings",
+      title: "Pengaturan",
       url: "#",
-      icon: <Settings2Icon />,
+      icon: <Settings2 className="h-4 w-4 text-gray-500" />,
     },
     {
-      title: "Get Help",
+      title: "Bantuan & Layanan",
       url: "#",
-      icon: <CircleHelpIcon />,
+      icon: <HelpCircle className="h-4 w-4 text-gray-500" />,
     },
-    // {
-    //   title: "Search",
-    //   url: "#",
-    //   icon: <SearchIcon />,
-    // },
   ],
-  // documents: [
-  //   {
-  //     name: "Data Library",
-  //     url: "#",
-  //     icon: <DatabaseIcon />,
-  //   },
-  //   {
-  //     name: "Reports",
-  //     url: "#",
-  //     icon: <FileChartColumnIcon />,
-  //   },
-  //   {
-  //     name: "Word Assistant",
-  //     url: "#",
-  //     icon: <FileIcon />,
-  //   },
-  // ],
 };
+
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar collapsible="offcanvas" {...props}>
@@ -155,21 +85,34 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
-              className="data-[slot=sidebar-menu-button]:p-1.5!"
-              render={<a href="#" />}
+              className="p-1.5 hover:bg-gray-100/60 rounded-md transition-colors"
+              render={<a href="/admin" />}
             >
-              <CommandIcon className="size-5!" />
-              <span className="text-base font-semibold">Acme Inc.</span>
+              <div className="flex h-8 w-8 items-center justify-center rounded-md bg-[#606C38] text-white shrink-0">
+                <Sprout className="h-4 w-4" />
+              </div>
+              <div className="flex flex-col text-left">
+                <span className="text-base font-bold text-gray-900 leading-tight">
+                  Coconeeds
+                </span>
+                <span className="text-[10px] font-semibold text-[#606C38] uppercase tracking-wider">
+                  Admin Platform
+                </span>
+              </div>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
-      <SidebarContent>
+
+      <SidebarContent className="px-2 py-3">
         <NavMain items={data.navMain} />
-        {/* <NavDocuments items={data.documents} /> */}
-        <NavSecondary items={data.navSecondary} className="mt-auto" />
+        <NavSecondary
+          items={data.navSecondary}
+          className="mt-auto pt-4 border-t border-gray-100"
+        />
       </SidebarContent>
-      <SidebarFooter>
+
+      <SidebarFooter className="border-t border-gray-100 p-2">
         <NavUser user={data.user} />
       </SidebarFooter>
     </Sidebar>

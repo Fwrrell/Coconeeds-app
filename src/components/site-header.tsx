@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ActiveDraggableContext } from "@dnd-kit/core/dist/components/DndContext";
+import { Building2, Globe } from "lucide-react";
 
 interface Kopdes {
   id: string;
@@ -30,7 +30,6 @@ export function SiteHeader() {
         if (!res.ok) throw new Error("Gagal mengambil data Kopdes");
 
         const responseData = await res.json();
-        // console.log("Data API Kopdes:", responseData);
 
         let safeArray: Kopdes[] = [];
         if (Array.isArray(responseData)) {
@@ -56,7 +55,7 @@ export function SiteHeader() {
 
   const getDisplayValue = () => {
     if (activeKopdesId === "ALL") {
-      return "🌍 Semua Kopdes (Global)";
+      return "Semua Kopdes (Global)";
     }
 
     const selectedKopdes = kopdesList.find(
@@ -77,26 +76,42 @@ export function SiteHeader() {
         <h1 className="text-base font-medium">Documents</h1>
 
         {/* Kopdes Switcher */}
-        <div className="ml-auto flex w-auto min-w-[180px] max-w-[200px] sm:max-w-[300px] lg:max-w-[400px] justify-end">
+        <div className="ml-auto flex w-auto min-w-[200px] max-w-[320px] justify-end items-center gap-2">
+          <span className="text-xs font-bold text-gray-500 hidden sm:inline-block shrink-0">
+            Kopdes Aktif:
+          </span>
           <Select
             value={activeKopdesId ?? ""}
             onValueChange={(value) => setActiveKopdes(value ?? "")}
             disabled={isLoading}
           >
-            <SelectTrigger className="h-8 w-full text-xs lg:text-sm bg-muted/50 [&>span]:truncate">
+            <SelectTrigger className="h-8.5 w-full text-xs font-semibold bg-white border-gray-200 focus:ring-[#606C38] focus:border-[#606C38] rounded-md shadow-none text-gray-800">
               <SelectValue
-                placeholder={isLoading ? "Memuat..." : "Pilih Pos Kopdes"}
+                placeholder={isLoading ? "Memuat Kopdes..." : "Pilih Kopdes"}
               >
                 {getDisplayValue()}
               </SelectValue>
             </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ALL" className="font-semibold text-primary">
-                🌍 Semua Kopdes (Global)
+            <SelectContent className="font-['Quicksand',sans-serif] bg-white border border-gray-200 rounded-md shadow-none">
+              <SelectItem
+                value="ALL"
+                className="font-bold text-[#606C38] focus:bg-[#FEFAE0]/40"
+              >
+                <span className="flex items-center gap-1.5">
+                  <Globe className="h-3.5 w-3.5 text-[#606C38]" />
+                  Semua Kopdes (Global)
+                </span>
               </SelectItem>
               {(kopdesList || []).map((kopdes) => (
-                <SelectItem key={kopdes.id} value={String(kopdes.id)}>
-                  {kopdes.name}
+                <SelectItem
+                  key={kopdes.id}
+                  value={String(kopdes.id)}
+                  className="font-medium text-gray-800"
+                >
+                  <span className="flex items-center gap-1.5">
+                    <Building2 className="h-3.5 w-3.5 text-gray-500" />
+                    {kopdes.name}
+                  </span>
                 </SelectItem>
               ))}
             </SelectContent>
