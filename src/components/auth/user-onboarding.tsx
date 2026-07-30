@@ -2,15 +2,25 @@
 
 import { useState, useRef } from "react";
 import { z } from "zod";
-import { motion, AnimatePresence } from "framer-motion";
-import Image from "next/image";
 import { signIn } from "next-auth/react";
-import { Loader2 } from "lucide-react";
+import {
+  Loader2,
+  Sprout,
+  CheckCircle2,
+  User,
+  Phone,
+  ShieldCheck,
+  ArrowRight,
+  ChevronRight,
+  Tractor,
+  Store,
+} from "lucide-react";
 
 import { defineStepper } from "@stepperize/react";
 import { buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 
 // Schema untuk input account dan security validation
 const accountSchema = z.object({
@@ -35,7 +45,7 @@ const onboarding = defineStepper(
       id: "pengenalan",
       title: "Selamat Datang",
       description:
-        "Mari mulai perjalanan memberdayakan petani bersama Coconeeds.",
+        "Pilih peran Anda dalam ekosistem logistik kelapa Coconeeds.",
     },
     {
       id: "account",
@@ -51,8 +61,8 @@ const onboarding = defineStepper(
     },
     {
       id: "confirm",
-      title: "Selesai",
-      description: "Pastikan data Anda sudah benar sebelum membuat akun.",
+      title: "Konfirmasi Akun",
+      description: "Pastikan data Anda sudah benar sebelum mendaftar.",
     },
   ] as const,
   {
@@ -81,20 +91,15 @@ function toErrors(
   return out;
 }
 
-const stepVariants = {
-  hidden: { opacity: 0, x: 15 },
-  visible: { opacity: 1, x: 0, transition: { duration: 0.4 } },
-  exit: { opacity: 0, x: -15, transition: { duration: 0.2 } },
-};
-
 export default function UserOnboardingBlock() {
   const [errors, setErrors] = useState<Errors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
+  const [selectedRole, setSelectedRole] = useState<"PETANI" | "POS">("PETANI");
 
   return (
     <Stepper.Root
-      className="flex min-h-dvh w-full max-w-lg flex-col bg-background px-5 pt-5 pb-6 sm:min-h-[90dvh] sm:rounded-2xl sm:border sm:shadow-sm overflow-hidden"
+      className="min-h-screen flex flex-col justify-between max-w-lg mx-auto w-full bg-white sm:border-x sm:border-gray-200 font-['Quicksand',sans-serif] relative"
       linear
       beforeStepChange={async ({ direction, validate }) => {
         if (direction !== "next") {
@@ -112,245 +117,259 @@ export default function UserOnboardingBlock() {
     >
       {({ stepper }) => (
         <>
-          {/* Header: Progress bar, Title */}
-          <div className="space-y-6 shrink-0 z-10 relative">
-            <Stepper.List className="flex w-full items-center justify-between gap-1.5">
-              <Stepper.Items>
-                {(step, index) => (
-                  <Stepper.Item
-                    key={step.id}
-                    step={step.id}
-                    className="relative flex flex-1 justify-center"
-                  >
-                    <Stepper.Trigger className="flex w-full disabled:cursor-not-allowed">
-                      <Stepper.Indicator className="h-2 w-full rounded-full transition-all duration-300 data-[status=active]:bg-[#606C38] data-[status=previous]:bg-[#606C38] data-[status=upcoming]:bg-slate-200" />{" "}
-                    </Stepper.Trigger>
-                  </Stepper.Item>
-                )}
-              </Stepper.Items>
-            </Stepper.List>
+          {/* Scrollable Main Body */}
+          <div className="flex-1 overflow-y-auto pb-28 p-5 sm:p-6 space-y-6">
+            {/* Top Brand Header */}
+            <div className="flex items-center gap-2 pt-2 pb-1 border-b border-gray-100">
+              <div className="h-9 w-9 rounded-lg bg-[#606C38] text-white flex items-center justify-center shrink-0">
+                <Sprout className="h-5 w-5" />
+              </div>
+              <span className="text-xl font-extrabold text-gray-900 tracking-tight">
+                Coconeeds
+              </span>
+            </div>
 
-            <motion.div
-              key={`header-${stepper.current.id}`}
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="space-y-2"
-            >
-              <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-[#283618]">
-                {stepper.current.title}
-              </h2>
-              <p className="max-w-xs text-base leading-6 text-[#606C38]">
-                {stepper.current.description}
-              </p>
-            </motion.div>
-          </div>
+            {/* Stepper Progress Bar */}
+            <div className="space-y-4">
+              <Stepper.List className="flex w-full items-center justify-between gap-2">
+                <Stepper.Items>
+                  {(step) => (
+                    <Stepper.Item
+                      key={step.id}
+                      step={step.id}
+                      className="relative flex flex-1 justify-center"
+                    >
+                      <Stepper.Trigger className="flex w-full disabled:cursor-not-allowed">
+                        <Stepper.Indicator className="h-2 w-full rounded-full transition-all duration-300 data-[status=active]:bg-[#606C38] data-[status=previous]:bg-[#606C38] data-[status=upcoming]:bg-gray-200" />
+                      </Stepper.Trigger>
+                    </Stepper.Item>
+                  )}
+                </Stepper.Items>
+              </Stepper.List>
 
-          {/* Main Content */}
-          <div className="mt-8 flex flex-1 flex-col relative">
-            <AnimatePresence mode="wait">
+              <div className="space-y-1">
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">
+                  {stepper.current.title}
+                </h1>
+                <p className="text-sm font-medium text-gray-500">
+                  {stepper.current.description}
+                </p>
+              </div>
+            </div>
+
+            {/* Step Contents */}
+            <div className="pt-2">
               {stepper.current.id === "pengenalan" && (
-                <Stepper.Content key="pengenalan" step="pengenalan">
-                  <motion.div
-                    variants={stepVariants}
-                    initial="hidden"
-                    animate="visible"
-                    exit="exit"
-                    className="flex flex-1 flex-col items-center justify-end"
-                  >
-                    <div className="absolute left-1/2 top-1/2 h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#DDA15E]/20 blur-3xl" />
+                <Stepper.Content step="pengenalan">
+                  <div className="space-y-3 pt-2">
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
+                      Pilih Profil Pendaftaran
+                    </p>
 
-                    <div className="relative mt-auto translate-y-[20px] sm:translate-y-[24px]">
-                      <Image
-                        src="/maskot.png"
-                        alt="Maskot Coconeeds"
-                        width={250}
-                        height={250}
-                        priority
-                        className="relative z-10 w-[240px] h-auto drop-shadow-xl"
+                    {/* Blocky Selection Card 1 */}
+                    <div
+                      onClick={() => setSelectedRole("PETANI")}
+                      className={cn(
+                        "w-full p-5 border border-gray-200 rounded-xl mb-3 flex items-center justify-between cursor-pointer transition-colors shadow-none",
+                        selectedRole === "PETANI"
+                          ? "border-[#606C38] bg-[#606C38]/5 text-gray-900 font-bold"
+                          : "bg-white text-gray-700 hover:border-gray-300",
+                      )}
+                    >
+                      <div className="flex items-center gap-4">
+                        <div
+                          className={cn(
+                            "h-12 w-12 rounded-xl flex items-center justify-center shrink-0",
+                            selectedRole === "PETANI"
+                              ? "bg-[#606C38] text-white"
+                              : "bg-gray-100 text-gray-600",
+                          )}
+                        >
+                          <Tractor className="h-6 w-6" />
+                        </div>
+                        <div>
+                          <h3 className="text-base font-bold text-gray-900">
+                            Petani / Kelompok Tani
+                          </h3>
+                          <p className="text-xs font-medium text-gray-500 mt-0.5">
+                            Menjual hasil panen kelapa & menyetorkan komoditas
+                            ke Kopdes.
+                          </p>
+                        </div>
+                      </div>
+                      <ChevronRight
+                        className={cn(
+                          "h-5 w-5 shrink-0",
+                          selectedRole === "PETANI"
+                            ? "text-[#606C38]"
+                            : "text-gray-400",
+                        )}
                       />
                     </div>
-                  </motion.div>
+                  </div>
                 </Stepper.Content>
               )}
 
               {stepper.current.id === "account" && (
-                <Stepper.Content key="account" step="account">
-                  <motion.div
-                    variants={stepVariants}
-                    initial="hidden"
-                    animate="visible"
-                    exit="exit"
-                    className="flex flex-1 flex-col justify-center space-y-6"
-                  >
+                <Stepper.Content step="account">
+                  <div className="space-y-5">
                     <AccountFields errors={errors} />
-                  </motion.div>
+                  </div>
                 </Stepper.Content>
               )}
 
               {stepper.current.id === "security" && (
-                <Stepper.Content key="security" step="security">
-                  <motion.div
-                    variants={stepVariants}
-                    initial="hidden"
-                    animate="visible"
-                    exit="exit"
-                    className="flex flex-1 flex-col justify-center space-y-6"
-                  >
+                <Stepper.Content step="security">
+                  <div className="space-y-5">
                     <SecurityFields errors={errors} />
-                  </motion.div>
+                  </div>
                 </Stepper.Content>
               )}
 
               {stepper.current.id === "confirm" && (
-                <Stepper.Content key="confirm" step="confirm">
-                  <motion.div
-                    variants={stepVariants}
-                    initial="hidden"
-                    animate="visible"
-                    exit="exit"
-                    className="flex flex-1 items-center justify-center"
-                  >
-                    <div className="flex w-full flex-col items-center text-center">
-                      <div className="relative mb-8">
-                        <div className="absolute left-1/2 top-1/2 h-48 w-48 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#DDA15E]/20 blur-3xl" />
-                        <div className="relative flex h-28 w-28 items-center justify-center rounded-full bg-[#606C38] text-5xl text-white shadow-xl shadow-[#606C38]/30">
-                          ✓
-                        </div>
-                      </div>
-                      <h3 className="text-2xl font-black text-[#283618]">
-                        Data Siap Disimpan
+                <Stepper.Content step="confirm">
+                  <div className="flex flex-col items-center justify-center text-center space-y-4 py-6 border border-gray-200 rounded-xl bg-gray-50/50 p-6">
+                    <div className="h-16 w-16 rounded-full bg-[#606C38]/10 text-[#606C38] flex items-center justify-center">
+                      <CheckCircle2 className="h-10 w-10" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold text-gray-900">
+                        Data Pendaftaran Lengkap
                       </h3>
-                      <p className="mt-2 max-w-[250px] text-sm leading-6 text-[#606C38]">
-                        Tekan <b>Buat Akun</b> di bawah untuk bergabung ke dalam
-                        platform.
+                      <p className="text-sm font-medium text-gray-500 mt-1 max-w-xs mx-auto">
+                        Tekan tombol <b>Buat Akun Sekarang</b> di bawah untuk
+                        langsung mendaftar dan masuk ke sistem.
                       </p>
                     </div>
-                  </motion.div>
+                  </div>
                 </Stepper.Content>
               )}
-            </AnimatePresence>
+            </div>
           </div>
 
-          {/* Footer: Action Button */}
-          <Stepper.Actions
-            className={`
-              flex w-full gap-3 pt-6 shrink-0 z-20
-              ${stepper.current.id === "pengenalan" ? "pb-2" : "mt-auto pb-2"}
-            `}
-          >
-            {stepper.isLast ? (
-              <div className="flex w-full flex-col gap-2">
-                {serverError && (
-                  <p className="text-center text-sm font-medium text-destructive">
-                    {serverError}
-                  </p>
-                )}
+          {/* Native App Fixed Bottom Action Bar */}
+          <div className="fixed bottom-0 left-0 right-0 w-full max-w-lg mx-auto p-4 bg-white border-t border-gray-100 z-20">
+            <Stepper.Actions className="flex w-full gap-3">
+              {stepper.isLast ? (
+                <div className="flex w-full flex-col gap-2">
+                  {serverError && (
+                    <p className="text-center text-xs font-bold text-red-600 bg-red-50 p-2.5 rounded-lg border border-red-200">
+                      {serverError}
+                    </p>
+                  )}
+                  <div className="flex w-full gap-3">
+                    {!stepper.isFirst && (
+                      <Stepper.Prev
+                        className={buttonVariants({
+                          variant: "outline",
+                          className:
+                            "w-1/3 h-14 rounded-xl border-gray-300 text-gray-700 font-semibold text-base shadow-none hover:bg-gray-50 cursor-pointer",
+                        })}
+                      >
+                        Kembali
+                      </Stepper.Prev>
+                    )}
+                    <button
+                      type="button"
+                      disabled={isSubmitting}
+                      onClick={async () => {
+                        setIsSubmitting(true);
+                        setServerError(null);
+
+                        const account = stepper.data.get("account");
+                        const security = stepper.data.get("security");
+
+                        try {
+                          const res = await fetch("/api/register", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                              name: account?.name,
+                              phoneNumber: account?.phoneNumber,
+                              pin: security?.pin,
+                            }),
+                          });
+
+                          const result = await res.json();
+
+                          if (!res.ok) {
+                            throw new Error(
+                              result.message || "Gagal mendaftar",
+                            );
+                          }
+
+                          const signInResult = await signIn("credentials", {
+                            phoneNumber: account?.phoneNumber,
+                            pin: security?.pin,
+                            redirect: false,
+                          });
+
+                          if (signInResult?.error) {
+                            throw new Error(
+                              "Pendaftaran berhasil, tetapi gagal masuk otomatis.",
+                            );
+                          }
+
+                          window.location.href = "/app";
+                        } catch (error: any) {
+                          console.error(error);
+                          setServerError(error.message);
+                        } finally {
+                          setIsSubmitting(false);
+                        }
+                      }}
+                      className={cn(
+                        buttonVariants({
+                          className:
+                            "flex-1 h-14 rounded-xl bg-[#606C38] text-white text-lg font-semibold hover:bg-[#283618] transition-colors shadow-none disabled:opacity-70 disabled:cursor-not-allowed",
+                        }),
+                      )}
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                          Memproses...
+                        </>
+                      ) : (
+                        "Buat Akun Sekarang"
+                      )}
+                    </button>
+                  </div>
+                </div>
+              ) : (
                 <div className="flex w-full gap-3">
                   {!stepper.isFirst && (
                     <Stepper.Prev
                       className={buttonVariants({
                         variant: "outline",
                         className:
-                          "flex-1 h-14 rounded-xl border-[#606C38] text-[#606C38] font-semibold hover:bg-[#606C38]/5 transition-colors",
+                          "w-1/3 h-14 rounded-xl border-gray-300 text-gray-700 font-semibold text-base shadow-none hover:bg-gray-50",
                       })}
                     >
                       Kembali
                     </Stepper.Prev>
                   )}
-                  <button
-                    type="button"
-                    disabled={isSubmitting}
-                    onClick={async () => {
-                      setIsSubmitting(true);
-                      setServerError(null);
-
-                      const account = stepper.data.get("account");
-                      const security = stepper.data.get("security");
-
-                      try {
-                        const res = await fetch("/api/register", {
-                          method: "POST",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({
-                            name: account?.name,
-                            phoneNumber: account?.phoneNumber,
-                            pin: security?.pin,
-                          }),
-                        });
-
-                        const result = await res.json();
-
-                        if (!res.ok) {
-                          throw new Error(result.message || "Gagal mendaftar");
-                        }
-
-                        const signInResult = await signIn("credentials", {
-                          phoneNumber: account?.phoneNumber,
-                          pin: security?.pin,
-                          redirect: false,
-                        });
-
-                        if (signInResult?.error) {
-                          throw new Error(
-                            "Pendaftaran berhasil, tetapi gagal masuk otomatis.",
-                          );
-                        }
-
-                        window.location.href = "/app";
-                      } catch (error: any) {
-                        console.error(error);
-                        setServerError(error.message);
-                      } finally {
-                        setIsSubmitting(false);
-                      }
-                    }}
-                    className={buttonVariants({
-                      className:
-                        "flex-1 h-14 rounded-xl bg-[#606C38] text-base font-semibold text-white hover:bg-[#283618] transition-colors shadow-lg shadow-[#606C38]/20 disabled:opacity-70 disabled:cursor-not-allowed",
-                    })}
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                        Memproses...
-                      </>
-                    ) : (
-                      "Buat Akun"
+                  <Stepper.Next
+                    className={cn(
+                      buttonVariants({
+                        className:
+                          "flex-1 h-14 rounded-xl bg-[#606C38] text-white text-lg font-semibold hover:bg-[#283618] transition-colors shadow-none cursor-pointer",
+                      }),
                     )}
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="flex w-full gap-3">
-                {!stepper.isFirst && (
-                  <Stepper.Prev
-                    className={buttonVariants({
-                      variant: "outline",
-                      className:
-                        "flex-1 h-14 rounded-xl border-[#606C38] text-[#606C38] font-semibold hover:bg-[#606C38]/5 transition-colors",
-                    })}
                   >
-                    Kembali
-                  </Stepper.Prev>
-                )}
-                <Stepper.Next
-                  className={buttonVariants({
-                    className:
-                      "flex-1 h-14 rounded-xl bg-[#606C38] text-base font-semibold text-white hover:bg-[#283618] transition-colors shadow-lg shadow-[#606C38]/20",
-                  })}
-                >
-                  Lanjut
-                </Stepper.Next>
-              </div>
-            )}
-          </Stepper.Actions>
+                    Lanjut <ArrowRight className="ml-2 h-5 w-5" />
+                  </Stepper.Next>
+                </div>
+              )}
+            </Stepper.Actions>
+          </div>
         </>
       )}
     </Stepper.Root>
   );
 }
 
-// Komponen Input Akun (Step 2)
+// Input Akun (Step 2)
 function AccountFields({ errors }: { errors: Errors }) {
   const stepper = onboarding.useStepper();
   const account = stepper.data.get("account") ?? { name: "", phoneNumber: "" };
@@ -359,16 +378,25 @@ function AccountFields({ errors }: { errors: Errors }) {
 
   return (
     <>
-      <Field
-        label="Nama Lengkap"
-        placeholder="Contoh: Budi Santoso"
-        value={account.name}
-        error={errors.name}
-        onChange={(event) => set({ name: event.target.value })}
-        className="h-14 rounded-xl"
-      />
       <div className="space-y-2">
-        <Label className="text-[#283618] font-semibold">Nomor Handphone</Label>
+        <Label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+          <User className="h-4 w-4 text-[#606C38]" /> Nama Lengkap Petani
+        </Label>
+        <Input
+          placeholder="Contoh: Budi Santoso"
+          value={account.name}
+          onChange={(event) => set({ name: event.target.value })}
+          className="h-14 rounded-xl border-gray-300 focus:border-[#606C38] focus:ring-[#606C38] text-lg px-4"
+        />
+        {errors.name && (
+          <p className="text-xs font-bold text-red-600 mt-1">{errors.name}</p>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        <Label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+          <Phone className="h-4 w-4 text-[#606C38]" /> Nomor Handphone
+        </Label>
         <Input
           placeholder="Contoh: 081234567890"
           value={account.phoneNumber}
@@ -380,10 +408,10 @@ function AccountFields({ errors }: { errors: Errors }) {
           inputMode="numeric"
           pattern="[0-9]*"
           maxLength={15}
-          className="h-14 rounded-xl"
+          className="h-14 rounded-xl border-gray-300 focus:border-[#606C38] focus:ring-[#606C38] text-lg px-4"
         />
         {errors.phoneNumber && (
-          <p className="text-xs font-medium text-destructive">
+          <p className="text-xs font-bold text-red-600 mt-1">
             {errors.phoneNumber}
           </p>
         )}
@@ -392,7 +420,7 @@ function AccountFields({ errors }: { errors: Errors }) {
   );
 }
 
-// Komponen Input PIN 6 Box
+// Input PIN 6 Box OTP Style (Step 3)
 function SecurityFields({ errors }: { errors: Errors }) {
   const stepper = onboarding.useStepper();
   const security = stepper.data.get("security") ?? { pin: "" };
@@ -404,12 +432,17 @@ function SecurityFields({ errors }: { errors: Errors }) {
 
   return (
     <div className="space-y-4">
-      <Label className="text-center sm:text-left block text-[#283618] font-semibold">
-        PIN 6 Angka
+      <Label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+        <ShieldCheck className="h-4 w-4 text-[#606C38]" /> Buat PIN Keamanan (6
+        Digit Angka)
       </Label>
+      <p className="text-xs font-medium text-gray-500">
+        PIN ini akan digunakan setiap kali Anda masuk ke akun.
+      </p>
 
+      {/* 6-box OTP-style Layout */}
       <div
-        className="relative flex w-full justify-between gap-2"
+        className="relative flex justify-center gap-2 sm:gap-3 w-full my-4 cursor-pointer"
         onClick={() => inputRef.current?.focus()}
       >
         <input
@@ -424,6 +457,7 @@ function SecurityFields({ errors }: { errors: Errors }) {
           pattern="[0-9]*"
           maxLength={6}
           className="absolute inset-0 z-10 w-full cursor-text opacity-0"
+          autoFocus
         />
 
         {pinArray.map((_, index) => {
@@ -433,10 +467,13 @@ function SecurityFields({ errors }: { errors: Errors }) {
           return (
             <div
               key={index}
-              className={`flex h-14 w-12 items-center justify-center rounded-xl border-2 bg-background text-3xl font-bold transition-all sm:h-16 sm:w-14
-                ${isActive ? "border-[#606C38] ring-4 ring-[#606C38]/10" : "border-slate-200"}
-                ${char ? "border-[#606C38] text-[#283618]" : "text-transparent"}
-              `}
+              className={cn(
+                "w-12 h-14 sm:w-14 sm:h-16 flex items-center justify-center text-center text-3xl font-bold border-2 rounded-xl transition-colors outline-none",
+                isActive
+                  ? "border-[#606C38] ring-2 ring-[#606C38]/20 bg-white"
+                  : "border-gray-200 bg-white",
+                char ? "border-[#606C38] text-gray-900" : "text-transparent",
+              )}
             >
               {char ? "•" : ""}
             </div>
@@ -445,31 +482,10 @@ function SecurityFields({ errors }: { errors: Errors }) {
       </div>
 
       {errors.pin && (
-        <p className="text-xs text-center sm:text-left font-medium text-destructive">
+        <p className="text-xs text-center font-bold text-red-600">
           {errors.pin}
         </p>
       )}
-    </div>
-  );
-}
-
-function Field({
-  label,
-  error,
-  className,
-  ...props
-}: { label: string; error?: string; className?: string } & React.ComponentProps<
-  typeof Input
->) {
-  return (
-    <div className="space-y-2">
-      <Label className="text-[#283618] font-semibold">{label}</Label>
-      <Input
-        aria-invalid={error ? true : undefined}
-        className={className}
-        {...props}
-      />
-      {error && <p className="text-xs font-medium text-destructive">{error}</p>}
     </div>
   );
 }
