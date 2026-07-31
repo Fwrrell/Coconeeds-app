@@ -6,7 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "db:seed": "prisma db seed"
+  },
+  "prisma": {
+    "seed": "node prisma/seed.js"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.2",
@@ -16,7 +20,7 @@
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
     "@hookform/resolvers": "^5.4.0",
-    "@prisma/adapter-pg": "^7.8.0",
+    "@prisma/adapter-pg": "^7.9.1",
     "@prisma/client": "^7.8.0",
     "@stepperize/react": "^7.0.0",
     "@tanstack/react-table": "^8.21.3",
@@ -24,6 +28,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.4.0",
+    "dotenv": "^17.4.2",
     "framer-motion": "^12.42.2",
     "input-otp": "^1.4.2",
     "lucide-react": "^1.24.0",

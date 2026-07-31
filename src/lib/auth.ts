@@ -1,9 +1,11 @@
+
 import NextAuth, { CredentialsSignin } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import prisma from "./prisma";
 import bcrypt from "bcrypt";
+import { Role, ApprovalStatus } from "@prisma/client";
 
 class CustomAuthError extends CredentialsSignin {
   constructor(msg: string) {
@@ -11,8 +13,6 @@ class CustomAuthError extends CredentialsSignin {
     this.code = msg;
   }
 }
-
-const SUPER_ADMIN_EMAIL = "muhammadfarrel0@gmail.com";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
@@ -22,23 +22,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
 
   providers: [
-    // OAuth Provider untuk ADMIN / PERUSAHAAN
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-
-      profile(profile) {
-        return {
-          id: profile.sub,
-          name: profile.name,
-          email: profile.email,
-          image: profile.picture,
-          role: "PERUSAHAAN",
-        };
-      },
     }),
 
-    // Credentials (Phone Number + PIN) Provider untuk PETANI
     CredentialsProvider({
       name: "Phone dan PIN",
       credentials: {
@@ -46,60 +34,95 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         pin: { label: "PIN", type: "password" },
       },
       async authorize(credentials) {
-        // cek input
         if (!credentials?.phoneNumber || !credentials?.pin) {
           throw new CustomAuthError("Nomor HP dan PIN wajib diisi");
         }
-
-        // cari petani di db dari nomor hp
         const user = await prisma.user.findUnique({
           where: { phoneNumber: credentials.phoneNumber as string },
         });
-
-        // kalo usernya gaada
         if (!user || !user.pin) {
           throw new CustomAuthError("Nomor HP tidak terdaftar.");
         }
-
-        // verify PIN
         const isPinValid = await bcrypt.compare(
           credentials.pin as string,
-          user.pin,
+          user.pin
         );
         if (!isPinValid) {
           throw new CustomAuthError("PIN yang Anda masukkan salah.");
         }
-
-        // return data user
-        return {
-          id: user.id,
-          name: user.name,
-          role: user.role,
-        };
+        return user;
       },
     }),
   ],
 
   callbacks: {
-    // Inject role ke jwt dan session
-    async jwt({ token, user }) {
-      if (user) {
-        token.id = user.id;
+    async jwt({ token, user, account, trigger }) {
+      if (user && user.id) {
+        // This branch runs only on initial sign-in
+        const dbUser = await prisma.user.findUnique({
+          where: { id: user.id },
+          select: { email: true, role: true, approvalStatus: true },
+        });
 
-        if (user.email === SUPER_ADMIN_EMAIL) {
-          // kalo email ada di SUPER_ADMIN_EMAIL maka kasih role admin
-          token.role = "ADMIN";
-        } else if (user.role) {
-          // case lain ambil role asli di db
-          token.role = user.role;
+        if (dbUser) {
+          token.id = user.id;
+          const email = dbUser.email?.toLowerCase().trim();
+          
+          console.log(`[AUTH_DIAGNOSTIC] JWT Sign-In Trigger: ${trigger}, Provider: ${account?.provider}, Email: ${email}`);
+
+          if (email) {
+            const whitelistedAdmin = await prisma.adminWhitelist.findFirst({
+              where: { email: { equals: email, mode: "insensitive" } },
+            });
+
+            if (whitelistedAdmin) {
+              console.log(`[AUTH_DIAGNOSTIC] Whitelist HIT for ${email}.`);
+              if (dbUser.role !== Role.ADMIN || dbUser.approvalStatus !== ApprovalStatus.APPROVED) {
+                console.log(`[AUTH_DIAGNOSTIC] Promoting ${email} to ADMIN/APPROVED.`);
+                await prisma.user.update({
+                  where: { id: user.id },
+                  data: { role: Role.ADMIN, approvalStatus: ApprovalStatus.APPROVED },
+                });
+              }
+              token.role = Role.ADMIN;
+              token.status = ApprovalStatus.APPROVED;
+            } else if (trigger === "signUp" && account?.provider === "google") {
+              console.log(`[AUTH_DIAGNOSTIC] New Google user ${email}. Setting to PERUSAHAAN/PENDING.`);
+              await prisma.user.update({
+                where: { id: user.id },
+                data: { role: Role.PERUSAHAAN, approvalStatus: ApprovalStatus.PENDING },
+              });
+              token.role = Role.PERUSAHAAN;
+              token.status = ApprovalStatus.PENDING;
+            } else {
+              // Existing user, not whitelisted
+              console.log(`[AUTH_DIAGNOSTIC] Existing user ${email}. Role: ${dbUser.role}`);
+              token.role = dbUser.role;
+              token.status = dbUser.approvalStatus;
+            }
+          } else {
+            // User has no email (e.g., credentials user)
+            token.role = dbUser.role;
+            token.status = dbUser.approvalStatus;
+          }
         }
+      } else if (token.role === Role.ADMIN && process.env.NEXT_RUNTIME === "nodejs") {
+        // For existing ADMIN sessions, re-validate against the DB on each request
+        // in Node.js runtime only. This prevents proxy crashes on Edge.
+        const dbUser = await prisma.user.findUnique({
+          where: { id: token.id as string },
+          select: { role: true, approvalStatus: true },
+        });
+        token.role = dbUser?.role ?? undefined;
+        token.status = dbUser?.approvalStatus ?? undefined;
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
-        session.user.role = token.role ?? "PETANI";
-        session.user.id = token.id ?? token.sub ?? "";
+        session.user.id = token.id as string;
+        session.user.role = token.role as Role;
+        session.user.status = token.status as ApprovalStatus;
       }
       return session;
     },

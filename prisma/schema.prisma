@@ -15,6 +15,12 @@ enum Role {
   ADMIN
 }
 
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 model User {
   id            String    @id @default(cuid())
   name          String?
@@ -29,12 +35,22 @@ model User {
   ecoPoints     Int       @default(0)
   isVerified    Boolean   @default(false)
 
+  approvalStatus ApprovalStatus @default(PENDING)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   accounts    Account[]
   panens      Panen[]
   wtbListings WtbListing[]
+}
+
+model AdminWhitelist {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  addedBy   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Kopdes {
@@ -52,6 +68,7 @@ model Kopdes {
 model SystemSetting {
   id                String   @id @default("global_config")
   autoVerifyNewUser Boolean  @default(false)
+  juriAccess        Boolean  @default(false)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 }

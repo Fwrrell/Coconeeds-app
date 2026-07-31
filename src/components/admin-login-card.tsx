@@ -1,18 +1,80 @@
 "use client";
 
-import { useState } from "react";
-import { signIn } from "next-auth/react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { signIn, signOut } from "next-auth/react";
 import { motion } from "framer-motion";
-import { ShieldCheck, Loader2, Sprout } from "lucide-react";
+import { ShieldCheck, Loader2, Sprout, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
+import { Role, ApprovalStatus } from "@prisma/client";
 
 export function AdminLoginCard() {
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true); // Start as true to handle initial session check
+  const [isSigningIn, setIsSigningIn] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
 
+  // Phase 2: Check session on mount (after returning from OAuth)
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        const sessionRes = await fetch("/api/auth/session");
+        if (!sessionRes.ok) { // Not logged in or error
+            setIsLoading(false);
+            return;
+        }
+        
+        const session = await sessionRes.json();
+        
+        // Check if there's an active session with a user object
+        if (session && session.user && session.user.id) {
+          const isApprovedAdmin = session.user.role === Role.ADMIN && session.user.status === ApprovalStatus.APPROVED;
+          
+          if (isApprovedAdmin) {
+            router.replace("/admin");
+          } else {
+            // Logged in, but not an approved admin. Show error and sign out.
+            setError("Email tidak terdaftar sebagai admin platform.");
+            await signOut({ redirect: false });
+          }
+        }
+      } catch (e) {
+        console.error("Failed to check session", e);
+        setError("Gagal memverifikasi sesi Anda.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    checkSession();
+  }, [router]);
+
+
+  // Phase 1: Handle the login button click
   const handleAdminLogin = async () => {
-    setIsLoading(true);
-    await signIn("google", { callbackUrl: "/admin" });
+    setIsSigningIn(true);
+    setError(null);
+
+    const result = await signIn("google", {
+      redirect: false,
+      callbackUrl: "/admin/login", // Important: callback here to trigger useEffect check
+    });
+
+    if (result?.error) {
+      setError("Gagal memulai proses login Google. Silakan coba lagi.");
+      setIsSigningIn(false);
+      return;
+    }
+
+    if (result?.url) {
+      // Manually navigate to the Google OAuth page
+      window.location.href = result.url;
+    } else {
+      // This case should not happen in a normal flow
+      setError("URL otentikasi tidak ditemukan.");
+      setIsSigningIn(false);
+    }
   };
 
   return (
@@ -41,11 +103,22 @@ export function AdminLoginCard() {
             </p>
           </div>
         </div>
+        
+        {error && (
+            <motion.div 
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex items-center gap-3 rounded-md border border-red-200 bg-red-50 p-3 text-xs font-semibold text-red-800"
+            >
+                <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+                <p>{error}</p>
+            </motion.div>
+        )}
 
         <div className="pt-2">
           <button
             type="button"
-            disabled={isLoading}
+            disabled={isLoading || isSigningIn}
             onClick={handleAdminLogin}
             className={cn(
               buttonVariants({
@@ -54,7 +127,7 @@ export function AdminLoginCard() {
               }),
             )}
           >
-            {isLoading ? (
+            {isSigningIn || isLoading ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin text-white" />
             ) : (
               <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
@@ -76,7 +149,7 @@ export function AdminLoginCard() {
                 />
               </svg>
             )}
-            Masuk dengan Google Administrator
+            {isSigningIn ? "Mengarahkan..." : isLoading ? "Memeriksa Sesi..." : "Masuk dengan Google Administrator"}
           </button>
         </div>
       </div>
