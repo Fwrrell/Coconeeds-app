@@ -39,26 +39,28 @@ export function NavUser({
     <SidebarMenu className="font-['Quicksand',sans-serif]">
       <SidebarMenuItem>
         <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <SidebarMenuButton
-              size="lg"
-              className="hover:bg-gray-100/70 rounded-md p-2 transition-colors flex items-center gap-3 w-full"
-            >
-              <Avatar className="h-8 w-8 rounded-md border border-gray-200 shrink-0">
-                <AvatarImage src={user.avatar} alt={user.name} />
-                <AvatarFallback className="bg-[#606C38] text-white font-bold text-xs rounded-md">
-                  {initials}
-                </AvatarFallback>
-              </Avatar>
-              <div className="grid flex-1 text-left text-xs leading-tight min-w-0">
-                <span className="truncate font-bold text-gray-900">{user.name}</span>
-                <span className="truncate text-[11px] font-medium text-gray-500">
-                  {user.email}
-                </span>
-              </div>
-              <MoreVertical className="ml-auto h-4 w-4 text-gray-400 shrink-0" />
-            </SidebarMenuButton>
-          </DropdownMenuTrigger>
+          <DropdownMenuTrigger
+            render={
+              <SidebarMenuButton
+                size="lg"
+                className="hover:bg-gray-100/70 rounded-md p-2 transition-colors flex items-center gap-3 w-full"
+              >
+                <Avatar className="h-8 w-8 rounded-md border border-gray-200 shrink-0">
+                  <AvatarImage src={user.avatar} alt={user.name} />
+                  <AvatarFallback className="bg-[#606C38] text-white font-bold text-xs rounded-md">
+                    {initials}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="grid flex-1 text-left text-xs leading-tight min-w-0">
+                  <span className="truncate font-bold text-gray-900">{user.name}</span>
+                  <span className="truncate text-[11px] font-medium text-gray-500">
+                    {user.email}
+                  </span>
+                </div>
+                <MoreVertical className="ml-auto h-4 w-4 text-gray-400 shrink-0" />
+              </SidebarMenuButton>
+            }
+          />
           <DropdownMenuContent
             className="min-w-56 bg-white border border-gray-200 rounded-md shadow-none font-['Quicksand',sans-serif]"
             side={isMobile ? "bottom" : "right"}
