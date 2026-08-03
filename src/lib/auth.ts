@@ -1,11 +1,26 @@
 
-import NextAuth, { CredentialsSignin } from "next-auth";
+import NextAuth, { CredentialsSignin, Profile } from "next-auth";
+import { DefaultJWT } from "next-auth/jwt";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import prisma from "./prisma";
 import bcrypt from "bcrypt";
 import { Role, ApprovalStatus } from "@prisma/client";
+
+declare module "next-auth" {
+  interface User {
+    role: Role;
+    status: ApprovalStatus;
+  }
+}
+
+declare module "next-auth/jwt" {
+  interface JWT extends DefaultJWT {
+    role?: Role;
+    status?: ApprovalStatus;
+  }
+}
 
 class CustomAuthError extends CredentialsSignin {
   constructor(msg: string) {
@@ -25,6 +40,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      profile(profile) {
+        return {
+          id: profile.sub,
+          name: profile.name,
+          email: profile.email,
+          image: profile.picture,
+          role: Role.PETANI, // Default role
+          status: ApprovalStatus.PENDING, // Default status
+        };
+      },
     }),
 
     CredentialsProvider({
@@ -50,13 +75,20 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (!isPinValid) {
           throw new CustomAuthError("PIN yang Anda masukkan salah.");
         }
-        return user;
+                return {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          image: user.image,
+          role: user.role,
+          status: user.approvalStatus,
+        };
       },
     }),
   ],
 
   callbacks: {
-    async jwt({ token, user, account, trigger }) {
+    async jwt({ token, user, account, trigger, profile }) {
       if (user && user.id) {
         // This branch runs only on initial sign-in
         const dbUser = await prisma.user.findUnique({
@@ -66,6 +98,21 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         if (dbUser) {
           token.id = user.id;
+
+          // Repair email if it's missing in DB but present in OAuth profile
+          if (!dbUser.email && profile?.email) {
+            try {
+              await prisma.user.update({
+                where: { id: user.id },
+                data: { email: profile.email },
+              });
+              dbUser.email = profile.email; // Update in-memory for this run
+              console.log(`[AUTH_REPAIR] Repaired missing email for user ${user.id} to ${profile.email}`);
+            } catch (e) {
+              console.error(`[AUTH_REPAIR] Failed to repair email for user ${user.id}:`, e);
+            }
+          }
+
           const email = dbUser.email?.toLowerCase().trim();
           
           console.log(`[AUTH_DIAGNOSTIC] JWT Sign-In Trigger: ${trigger}, Provider: ${account?.provider}, Email: ${email}`);
@@ -79,19 +126,24 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               console.log(`[AUTH_DIAGNOSTIC] Whitelist HIT for ${email}.`);
               if (dbUser.role !== Role.ADMIN || dbUser.approvalStatus !== ApprovalStatus.APPROVED) {
                 console.log(`[AUTH_DIAGNOSTIC] Promoting ${email} to ADMIN/APPROVED.`);
-                await prisma.user.update({
+                const updatedUser = await prisma.user.update({
                   where: { id: user.id },
                   data: { role: Role.ADMIN, approvalStatus: ApprovalStatus.APPROVED },
                 });
+                dbUser.role = updatedUser.role;
+                dbUser.approvalStatus = updatedUser.approvalStatus;
               }
               token.role = Role.ADMIN;
               token.status = ApprovalStatus.APPROVED;
             } else if (trigger === "signUp" && account?.provider === "google") {
               console.log(`[AUTH_DIAGNOSTIC] New Google user ${email}. Setting to PERUSAHAAN/PENDING.`);
-              await prisma.user.update({
+              const updatedUser = await prisma.user.update({
                 where: { id: user.id },
                 data: { role: Role.PERUSAHAAN, approvalStatus: ApprovalStatus.PENDING },
               });
+              dbUser.role = updatedUser.role;
+              dbUser.approvalStatus = updatedUser.approvalStatus;
+
               token.role = Role.PERUSAHAAN;
               token.status = ApprovalStatus.PENDING;
             } else {
@@ -101,7 +153,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               token.status = dbUser.approvalStatus;
             }
           } else {
-            // User has no email (e.g., credentials user)
+            // User has no email (e.g., credentials user), use existing DB roles
             token.role = dbUser.role;
             token.status = dbUser.approvalStatus;
           }
@@ -132,3 +184,4 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     signIn: "/login",
   },
 });
+

@@ -43,6 +43,13 @@ model User {
   accounts    Account[]
   panens      Panen[]
   wtbListings WtbListing[]
+
+  lahan              Lahan[]             @relation("PetaniLahan")
+  dailyLogs          DailyLog[]          @relation("PetaniDailyLog")
+  financialTxs       FarmerFinancialTx[] @relation("PetaniFinancialTx")
+  ecoPointTxs        EcoPointTx[]        @relation("PetaniEcoPointTx")
+  inventory          FarmerInventory[]   @relation("PetaniInventory")
+  inventoryMutations InventoryMutation[] @relation("PetaniInventoryMutation")
 }
 
 model AdminWhitelist {
@@ -103,6 +110,7 @@ enum PanenStatus {
   IN_WAREHOUSE
   IN_TRANSIT
   DELIVERED
+  QC_IN_PROGRESS
 }
 
 model Panen {
@@ -119,12 +127,19 @@ model Panen {
   basePricePerKg   Float?
   profitMargin     Float?
   status           PanenStatus      @default(PENDING_PICKUP)
-  batchId          String?
-  batch            Batch?           @relation(fields: [batchId], references: [id])
-  kopdesId         String?
-  kopdes           Kopdes?          @relation(fields: [kopdesId], references: [id])
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
+
+  trackingCode        String?   @unique
+  driverName          String?
+  qrCodePass          String? // data di dalam qr code
+  handoverPin         String? // 6 digit pin
+  handoverValidatedAt DateTime?
+
+  batchId   String?
+  batch     Batch?   @relation(fields: [batchId], references: [id])
+  kopdesId  String?
+  kopdes    Kopdes?  @relation(fields: [kopdesId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Batch {
@@ -192,6 +207,152 @@ enum PengirimanKapalStatus {
   WAITING_DEPARTURE
   IN_TRANSIT
   ARRIVED
+}
+
+model Lahan {
+  id                 String    @id @default(uuid())
+  petaniId           String
+  petani             User      @relation("PetaniLahan", fields: [petaniId], references: [id], onDelete: Cascade)
+  namaLahan          String
+  luasM2             Float
+  jumlahPohon        Int
+  lokasiAddress      String
+  tanggalTanam       DateTime?
+  pupuk              String?
+  waktuPanenEstimate DateTime?
+  status             String?   @default("PRODUKTIF")
+  deskripsi          String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  dailyLogs DailyLog[]
+}
+
+enum WeatherCondition {
+  CERAH
+  BERAWAN
+  HUJAN_RINGAN
+  HUJAN_DERAS
+  BADAI
+}
+
+model DailyLog {
+  id               String           @id @default(uuid())
+  lahanId          String
+  lahan            Lahan            @relation(fields: [lahanId], references: [id], onDelete: Cascade)
+  petaniId         String
+  petani           User             @relation("PetaniDailyLog", fields: [petaniId], references: [id], onDelete: Cascade)
+  tanggal          DateTime
+  isWatered        Boolean          @default(false)
+  harvestCountKg   Float?
+  fruitDropCount   Int?
+  pestType         String?
+  weatherCondition WeatherCondition
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum FarmerFinancialTxType {
+  PEMASUKAN
+  PENGELUARAN
+}
+
+model FarmerFinancialTx {
+  id         String                @id @default(uuid())
+  petaniId   String
+  petani     User                  @relation("PetaniFinancialTx", fields: [petaniId], references: [id], onDelete: Cascade)
+  tipe       FarmerFinancialTxType
+  keterangan String
+  nominalIdr Float
+  kategori   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model RewardCatalog {
+  id          String  @id @default(uuid())
+  title       String
+  description String?
+  costPoints  Int
+  category    String
+  isActive    Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  redemptions EcoPointTx[]
+}
+
+enum EcoPointTxType {
+  EARN
+  REDEEM
+}
+
+model EcoPointTx {
+  id          String         @id @default(uuid())
+  petaniId    String
+  petani      User           @relation("PetaniEcoPointTx", fields: [petaniId], references: [id], onDelete: Cascade)
+  type        EcoPointTxType
+  points      Int
+  activity    String
+  rewardId    String?
+  reward      RewardCatalog? @relation(fields: [rewardId], references: [id])
+  voucherCode String?        @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum InventoryCategory {
+  PRODUK_PRIMER
+  PRODUK_OLAHAN
+  PRODUK_SAMPINGAN
+}
+
+model FarmerInventory {
+  id          String            @id @default(uuid())
+  petaniId    String
+  petani      User              @relation("PetaniInventory", fields: [petaniId], references: [id], onDelete: Cascade)
+  kategori    InventoryCategory
+  jenisProduk String
+  jumlah      Float
+  satuan      String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([petaniId, jenisProduk])
+}
+
+enum InventoryMutationType {
+  MASUK
+  KELUAR
+}
+
+enum InventoryMutationReason {
+  HASIL_PANEN
+  PRODUKSI_OLAHAN
+  KONSUMSI_PRIBADI
+  RUSAK_SUSUT
+  PENJUALAN
+}
+
+model InventoryMutation {
+  id         String                  @id @default(uuid())
+  petaniId   String
+  petani     User                    @relation("PetaniInventoryMutation", fields: [petaniId], references: [id], onDelete: Cascade)
+  komoditas  String
+  tipe       InventoryMutationType
+  jumlah     Float
+  satuan     String
+  alasan     InventoryMutationReason
+  keterangan String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model PengirimanKapal {

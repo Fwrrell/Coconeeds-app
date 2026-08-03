@@ -9,7 +9,10 @@ const connectionString = process.env.DATABASE_URL || process.env.DIRECT_URL;
 const ADMIN_EMAILS = ["muhammadfarrel0@gmail.com"];
 // ---------------
 
-const isLocal = !connectionString || connectionString.includes("localhost") || connectionString.includes("127.0.0.1");
+const isLocal =
+  !connectionString ||
+  connectionString.includes("localhost") ||
+  connectionString.includes("127.0.0.1");
 const sslConfig = isLocal ? undefined : { rejectUnauthorized: false };
 
 const pool = new Pool({ connectionString, ssl: sslConfig });
@@ -33,12 +36,16 @@ async function main() {
         where: { id: existingWhitelist.id },
         data: { email: normalizedEmail, addedBy: "seed_script" },
       });
-      console.log(`   ✓ AdminWhitelist: Found and updated to canonical email '${updatedWhitelist.email}'`);
+      console.log(
+        `   ✓ AdminWhitelist: Found and updated to canonical email '${updatedWhitelist.email}'`,
+      );
     } else {
       const newWhitelist = await prisma.adminWhitelist.create({
         data: { email: normalizedEmail, addedBy: "seed_script" },
       });
-      console.log(`   ✓ AdminWhitelist: Created new entry for '${newWhitelist.email}'`);
+      console.log(
+        `   ✓ AdminWhitelist: Created new entry for '${newWhitelist.email}'`,
+      );
     }
 
     // --- 2. Handle User record ---
@@ -46,32 +53,41 @@ async function main() {
       where: { email: { equals: normalizedEmail, mode: "insensitive" } },
       include: { accounts: true, panens: true, wtbListings: true },
     });
-    
+
     if (existingUser) {
-        if (existingUser.accounts && existingUser.accounts.length > 0) {
-            // User exists and is linked to an account - promote them
-            const updatedUser = await prisma.user.update({
-                where: { id: existingUser.id },
-                data: {
-                    email: normalizedEmail, // ensure canonical email
-                    role: Role.ADMIN,
-                    approvalStatus: ApprovalStatus.APPROVED,
-                }
-            });
-            console.log(`   ✓ User: Found user with linked account(s). Promoted '${updatedUser.email}' to ADMIN/APPROVED.`);
+      if (existingUser.accounts && existingUser.accounts.length > 0) {
+        const updatedUser = await prisma.user.update({
+          where: { id: existingUser.id },
+          data: {
+            email: normalizedEmail,
+            role: Role.ADMIN,
+            approvalStatus: ApprovalStatus.APPROVED,
+          },
+        });
+        console.log(
+          `   ✓ User: Found user with linked account(s). Promoted '${updatedUser.email}' to ADMIN/APPROVED.`,
+        );
+      } else {
+        if (
+          existingUser.panens.length === 0 &&
+          existingUser.wtbListings.length === 0
+        ) {
+          console.log(
+            `   ! User: Found orphan user (no linked accounts or data). Deleting '${existingUser.email}' to allow clean link on next login.`,
+          );
+          await prisma.user.delete({ where: { id: existingUser.id } });
+          console.log(`   ✓ User: Deleted orphan user.`);
         } else {
-            // User exists but has no linked accounts (orphan)
-            if(existingUser.panens.length === 0 && existingUser.wtbListings.length === 0) {
-                console.log(`   ! User: Found orphan user (no linked accounts or data). Deleting '${existingUser.email}' to allow clean link on next login.`);
-                await prisma.user.delete({ where: { id: existingUser.id } });
-                console.log(`   ✓ User: Deleted orphan user.`);
-            } else {
-                console.log(`   ✗ User: Found orphan user '${existingUser.email}' but it has associated data (panens/wtb). Cannot delete automatically. Please resolve manually.`);
-            }
+          console.log(
+            `   ✗ User: Found orphan user '${existingUser.email}' but it has associated data (panens/wtb). Cannot delete automatically. Please resolve manually.`,
+          );
         }
+      }
     } else {
-        // User does not exist, do nothing. Auth.js will create it on first login.
-        console.log(`   ✓ User: No user found for '${normalizedEmail}'. It will be created by Auth.js on first Google login.`);
+      // User does not exist, do nothing. Auth.js will create it on first login.
+      console.log(
+        `   ✓ User: No user found for '${normalizedEmail}'. It will be created by Auth.js on first Google login.`,
+      );
     }
   }
 

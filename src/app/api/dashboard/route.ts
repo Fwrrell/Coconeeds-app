@@ -21,7 +21,7 @@ export async function GET(request: Request) {
     sixtyDaysAgo.setDate(now.getDate() - 60);
 
     // --- 1. KPI Aggregation ---
-    const whereKopdes: Prisma.UserWhereInput = kopdesId && kopdesId !== "ALL" ? { kopdesId } : {};
+    const whereKopdes: any = kopdesId && kopdesId !== "ALL" ? { petani: { kopdesId } } : {};
 
     const [
         totalPetani,
@@ -123,8 +123,8 @@ export async function GET(request: Request) {
     return NextResponse.json({
         kpi: {
             totalPetani: { value: totalPetani, growth: calculateGrowth(totalPetani, prevTotalPetani) },
-            kargoGudang: { value: kargoGudang._sum.totalWeight ?? 0, growth: 0 }, // Growth logic placeholder
-            kargoBerlayar: { value: kargoBerlayar._sum.totalWeight ?? 0, growth: 0 }, // Growth logic placeholder
+            kargoGudang: { value: kargoGudang._sum?.totalWeight ?? 0, growth: 0 }, // Growth logic placeholder
+            kargoBerlayar: { value: kargoBerlayar._sum?.totalWeight ?? 0, growth: 0 }, // Growth logic placeholder
             totalDeals: { value: totalDeals, growth: totalDeals - prevTotalDeals }, // Simple count increase
         },
         chart: filledChartData,

@@ -7,7 +7,7 @@ import { negosiasiSchema } from "@/lib/validations/negosiasi.schema";
 
 export async function GET(
   req: Request,
-  { params }: { params: { id: string } }, // Diganti ke { id: string }
+  { params }: { params: Promise<{ id: string }> }, // Diganti ke { id: string }
 ) {
   try {
     const session = await auth();
@@ -18,7 +18,7 @@ export async function GET(
       );
     }
 
-    const { id } = params; // Menggunakan id
+    const { id } = await params; // Menggunakan id
 
     const negosiasi = await prisma.negosiasi.findMany({
       where: { wtbId: id }, // Mencari berdasarkan id
@@ -40,7 +40,7 @@ export async function GET(
 
 export async function POST(
   req: Request,
-  { params }: { params: { id: string } }, // Diganti ke { id: string }
+  { params }: { params: Promise<{ id: string }> }, // Diganti ke { id: string }
 ) {
   try {
     const session = await auth();
@@ -51,7 +51,7 @@ export async function POST(
       );
     }
 
-    const { id } = params; // Menggunakan id
+    const { id } = await params; // Menggunakan id
     const body = await req.json();
 
     const parsed = negosiasiSchema.safeParse(body);

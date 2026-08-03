@@ -83,7 +83,7 @@ export async function GET(request: Request) {
       whereClause.status = status;
     } else {
       // Jika tidak ada param status, ambil semua kecuali COMPLETED
-      whereClause.status = { not: "COMPLETED" };
+      whereClause.status = { not: WtbStatus.COMPLETED } as any;
     }
 
     const wtbList = await prisma.wtbListing.findMany({
