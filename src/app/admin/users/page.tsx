@@ -101,18 +101,18 @@ const getInitials = (name?: string | null) => {
   return safeName.substring(0, 2).toUpperCase();
 };
 
-const statusConfig = {
-  [ApprovalStatus.PENDING]: {
+const statusConfig: Record<ApprovalStatus, any> = {
+  PENDING: {
     text: "Pending",
     icon: ShieldAlert,
     color: "bg-[#DDA15E]/15 border-[#BC6C25]/30 text-[#BC6C25]",
   },
-  [ApprovalStatus.APPROVED]: {
+  APPROVED: {
     text: "Approved",
     icon: ShieldCheck,
     color: "bg-[#606C38]/10 border-[#606C38]/30 text-[#606C38]",
   },
-  [ApprovalStatus.REJECTED]: {
+  REJECTED: {
     text: "Rejected",
     icon: UserX,
     color: "bg-red-100 border-red-200 text-red-600",
@@ -922,13 +922,13 @@ export default function UserManagementPage() {
           <AlertDialogFooter>
             <Button
               variant="outline"
-              onClick={() => handleApproval(ApprovalStatus.REJECTED)}
+              onClick={() => handleApproval("REJECTED")}
               className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
             >
               Tolak
             </Button>
             <AlertDialogAction
-              onClick={() => handleApproval(ApprovalStatus.APPROVED)}
+              onClick={() => handleApproval("APPROVED")}
               className="bg-[#606C38] hover:bg-[#283618]"
             >
               Setujui

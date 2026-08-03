@@ -7,9 +7,6 @@ import { motion } from "framer-motion";
 import { ShieldCheck, Loader2, Sprout, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
-// type inline biar browser ga panggil prisma client
-type Role = any;
-type ApprovalStatus = any;
 
 export function AdminLoginCard() {
   const [isLoading, setIsLoading] = useState(true); // Start as true to handle initial session check
@@ -29,7 +26,7 @@ export function AdminLoginCard() {
         const session = await sessionRes.json();
         
         if (session?.user?.id) {
-          const isApprovedAdmin = session.user.role === Role.ADMIN && session.user.status === ApprovalStatus.APPROVED;
+          const isApprovedAdmin = session.user.role === "ADMIN" && session.user.status === "APPROVED";
           
           if (isApprovedAdmin) {
             router.replace("/admin");

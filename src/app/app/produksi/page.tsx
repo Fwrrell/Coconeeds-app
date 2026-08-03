@@ -249,7 +249,7 @@ export default function GudangInventoriPage() {
           </CardHeader>
           <CardContent className="pt-4 space-y-3">
             {stokPrimer.length > 0 ? (
-              stokPrimer.map((item) => (
+              stokPrimer.map((item: any) => (
                 <div
                   key={item.id}
                   className="p-3 rounded-xl border border-gray-100 bg-gray-50/50 flex items-center justify-between text-xs"
@@ -289,7 +289,7 @@ export default function GudangInventoriPage() {
           </CardHeader>
           <CardContent className="pt-4 space-y-3">
             {stokOlahan.length > 0 ? (
-              stokOlahan.map((item) => (
+              stokOlahan.map((item: any) => (
                 <div
                   key={item.id}
                   className="p-3 rounded-xl border border-gray-100 bg-gray-50/50 flex items-center justify-between text-xs"
@@ -329,7 +329,7 @@ export default function GudangInventoriPage() {
           </CardHeader>
           <CardContent className="pt-4 space-y-3">
             {stokSampingan.length > 0 ? (
-              stokSampingan.map((item) => (
+              stokSampingan.map((item: any) => (
                 <div
                   key={item.id}
                   className="p-3 rounded-xl border border-gray-100 bg-gray-50/50 flex items-center justify-between text-xs"
