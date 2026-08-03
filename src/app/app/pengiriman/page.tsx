@@ -47,7 +47,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import {
+import type {
   Panen,
   Kopdes,
   FarmerInventory,
@@ -62,15 +62,15 @@ type PanenWithKopdes = Panen & { kopdes: { name: string } | null };
 const STAGES: { name: string; status: PanenStatus[] }[] = [
   {
     name: "1. Penjemputan",
-    status: [PanenStatus.PENDING_PICKUP, PanenStatus.PENDING_DROPOFF],
+    status: ["PENDING_PICKUP", "PENDING_DROPOFF"],
   },
   {
     name: "2. Pemeriksaan Kualitas (QC Kopdes)",
-    status: [PanenStatus.QC_IN_PROGRESS],
+    status: ["QC_IN_PROGRESS"],
   },
-  { name: "3. Gudang Kopdes", status: [PanenStatus.IN_WAREHOUSE] },
-  { name: "4. Gudang Off-Taker (B2B)", status: [PanenStatus.IN_TRANSIT] },
-  { name: "5. Produk Diterima", status: [PanenStatus.DELIVERED] },
+  { name: "3. Gudang Kopdes", status: ["IN_WAREHOUSE"] },
+  { name: "4. Gudang Off-Taker (B2B)", status: ["IN_TRANSIT"] },
+  { name: "5. Produk Diterima", status: ["DELIVERED"] },
 ];
 
 const getStatusInfo = (status: PanenStatus) => {
@@ -619,9 +619,7 @@ export default function PengirimanPage() {
                 </Label>
                 <Select
                   value={selectedBarang}
-                  onValueChange={(value) =>
-                    value && setSelectedBarang(value)
-                  }
+                  onValueChange={(value) => value && setSelectedBarang(value)}
                 >
                   <SelectTrigger className="h-11 rounded-xl border-gray-300 text-xs">
                     <SelectValue placeholder="Pilih Barang" />
@@ -691,9 +689,7 @@ export default function PengirimanPage() {
                 </Label>
                 <Select
                   value={kopdesForm}
-                  onValueChange={(value) =>
-                    value && setKopdesForm(value)
-                  }
+                  onValueChange={(value) => value && setKopdesForm(value)}
                 >
                   <SelectTrigger className="h-11 rounded-xl border-gray-300 text-xs">
                     <SelectValue placeholder="Pilih Pos Kopdes" />
