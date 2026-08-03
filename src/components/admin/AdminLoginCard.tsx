@@ -7,7 +7,9 @@ import { motion } from "framer-motion";
 import { ShieldCheck, Loader2, Sprout, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
-import { Role, ApprovalStatus } from "@prisma/client";
+// type inline biar browser ga panggil prisma client
+type Role = any;
+type ApprovalStatus = any;
 
 export function AdminLoginCard() {
   const [isLoading, setIsLoading] = useState(true); // Start as true to handle initial session check

@@ -42,7 +42,9 @@ import { useAdminStore } from "@/hooks/useAdminStore";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
-import { WtbStatus, Role } from "@prisma/client";
+// type inline biar ga error browser
+type WtbStatus = any;
+type Role = any;
 import { formatDistanceToNow } from 'date-fns';
 import { id as a } from 'date-fns/locale';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";

@@ -43,11 +43,14 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import {
-  FarmerInventory,
-  InventoryMutation,
-  InventoryMutationReason,
-} from "@prisma/client";
+// ganti pke type inline krn prisma gabisa di client
+type FarmerInventory = any;
+type InventoryMutation = any;
+const InventoryMutationReason = {
+  DIOLAH: "DIOLAH",
+  KONSUMSI_PRIBADI: "KONSUMSI_PRIBADI",
+  RUSAK_SUSUT: "RUSAK_SUSUT",
+} as const;
 
 const formatDate = (dateString: string | Date | null | undefined) => {
   if (!dateString) return "N/A";

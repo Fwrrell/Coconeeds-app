@@ -31,7 +31,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import Image from "next/image";
-import { Lahan } from "@prisma/client"; // Import type from prisma
+type Lahan = any; // type inline smntara biar ga error di browser
 
 // --- HELPER UNTUK FORMAT TANGGAL ---
 const formatDate = (dateString: string | Date | null | undefined) => {

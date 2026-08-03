@@ -87,7 +87,8 @@ import { z } from "zod";
 import { toast } from "sonner";
 import { registerSchema } from "@/lib/validations/register.schema";
 import { motion } from "framer-motion";
-import { ApprovalStatus } from "@prisma/client";
+// inline type biar ga error browser
+type ApprovalStatus = any;
 import React from "react";
 
 // --- Helper Functions ---

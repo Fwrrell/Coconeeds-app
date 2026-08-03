@@ -47,13 +47,12 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import type {
-  Panen,
-  Kopdes,
-  FarmerInventory,
-  PanenStatus,
-  PengirimanMethod,
-} from "@prisma/client";
+// hapus prisma import biar vercel ga komplain client side
+type Panen = any;
+type Kopdes = any;
+type FarmerInventory = any;
+type PanenStatus = string;
+type PengirimanMethod = string;
 import { formatRupiah } from "@/utils/formatter";
 import Image from "next/image";
 

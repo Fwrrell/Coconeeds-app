@@ -25,7 +25,9 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { RewardCatalog, EcoPointTx } from "@prisma/client";
+// inline types dlu biar client side ga import prisma
+type RewardCatalog = any;
+type EcoPointTx = any;
 
 // --- STATIC MOCK DATA (Eco Points) ---
 const MOCK_ECO_MISSIONS = [
