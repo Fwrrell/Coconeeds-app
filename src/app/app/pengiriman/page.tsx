@@ -620,7 +620,7 @@ export default function PengirimanPage() {
                   value={selectedBarang}
                   onValueChange={(value) => value && setSelectedBarang(value)}
                 >
-                  <SelectTrigger className="h-11 rounded-xl border-gray-300 text-xs">
+                  <SelectTrigger className="w-full h-11 rounded-xl border-gray-300 text-xs">
                     <SelectValue placeholder="Pilih Barang" />
                   </SelectTrigger>
                   <SelectContent className="font-['Quicksand',sans-serif]">
@@ -690,7 +690,7 @@ export default function PengirimanPage() {
                   value={kopdesForm}
                   onValueChange={(value) => value && setKopdesForm(value)}
                 >
-                  <SelectTrigger className="h-11 rounded-xl border-gray-300 text-xs">
+                  <SelectTrigger className="w-full h-11 rounded-xl border-gray-300 text-xs">
                     <SelectValue placeholder="Pilih Pos Kopdes" />
                   </SelectTrigger>
                   <SelectContent className="font-['Quicksand',sans-serif]">
@@ -715,16 +715,13 @@ export default function PengirimanPage() {
                       if (value) setMetodeForm(value as PengirimanMethod);
                     }}
                   >
-                    <SelectTrigger className="h-11 rounded-xl border-gray-300 text-xs">
+                    <SelectTrigger className="w-full h-11 rounded-xl border-gray-300 text-xs">
                       <SelectValue placeholder="Metode" />
                     </SelectTrigger>
                     <SelectContent className="font-['Quicksand',sans-serif]">
-                      <SelectItem value="PICKUP">
-                        Penjemputan Armada Kopdes
-                      </SelectItem>
-                      <SelectItem value="SELF_DELIVERY">
-                        Setor Mandiri (Antar Sendiri)
-                      </SelectItem>
+                      {/* samain label dropdown biar user ga bingung value vs name */}
+                      <SelectItem value="PICKUP">Penjemputan</SelectItem>
+                      <SelectItem value="SELF_DELIVERY">Setor Mandiri</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

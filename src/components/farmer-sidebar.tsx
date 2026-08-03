@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
@@ -13,6 +13,8 @@ import {
   PlusCircle,
   Send,
   CheckCircle2,
+  Loader2,
+  User,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -70,7 +72,36 @@ export function FarmerSidebar({
   const [jenisProduk, setJenisProduk] = useState("Kelapa Utuh");
   const [jumlah, setJumlah] = useState(500);
   const [satuan, setSatuan] = useState("Kg");
-  const [lahanSelected, setLahanSelected] = useState("Kebun Blok A Utara");
+  const [lahanSelected, setLahanSelected] = useState<string>("");
+
+  // real lahan data state
+  const [lahanList, setLahanList] = useState<any[]>([]);
+  const [isLoadingLahan, setIsLoadingLahan] = useState(false);
+
+  // fetch data lahan user dlu sblm render modal
+  const fetchLahanList = useCallback(async () => {
+    setIsLoadingLahan(true);
+    try {
+      const res = await fetch("/api/app/lahan");
+      if (res.ok) {
+        const data = await res.json();
+        setLahanList(data);
+        if (data && data.length > 0) {
+          setLahanSelected(data[0].id);
+        }
+      }
+    } catch (err) {
+      console.error("Gagal load lahan data:", err);
+    } finally {
+      setIsLoadingLahan(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isModalOpen) {
+      fetchLahanList();
+    }
+  }, [isModalOpen, fetchLahanList]);
 
   // filter options produk berdasarkan kategori komoditas
   const getJenisOptions = () => {
@@ -88,8 +119,29 @@ export function FarmerSidebar({
     return ["Tempurung Kelapa", "Sabut Kelapa", "Air Kelapa"];
   };
 
-  const handleHarvestSubmit = (e: React.FormEvent) => {
+  const handleHarvestSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    try {
+      const selectedLahanObj = lahanList.find((l) => l.id === lahanSelected);
+      const keteranganText = selectedLahanObj
+        ? `Panen dari ${selectedLahanObj.namaLahan}`
+        : "Penambahan stok panen";
+
+      await fetch("/api/app/inventori", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          kategori,
+          jenisProduk,
+          jumlah: Number(jumlah),
+          satuan,
+          keterangan: keteranganText,
+        }),
+      });
+    } catch (err) {
+      console.error("Error submitting panen:", err);
+    }
+
     setModalSuccess(true);
     setTimeout(() => {
       setModalSuccess(false);
@@ -155,7 +207,10 @@ export function FarmerSidebar({
         </nav>
 
         {/* Footer Profile Connected to Auth Session */}
-        <div className="p-4 border-t border-gray-100 bg-gray-50/50 flex items-center justify-between">
+        <Link
+          href="/app/profil"
+          className="p-4 border-t border-gray-100 bg-gray-50/50 flex items-center justify-between hover:bg-gray-100/60 transition-colors"
+        >
           <div className="flex items-center gap-2.5 min-w-0">
             <div className="h-9 w-9 rounded-full bg-[#606C38] text-white flex items-center justify-center text-xs font-extrabold shrink-0">
               {avatarInitials}
@@ -169,7 +224,7 @@ export function FarmerSidebar({
               </p>
             </div>
           </div>
-        </div>
+        </Link>
       </aside>
 
       {/* GLOBAL MODAL: CATAT HASIL & PENAMBAHAN INVENTORI */}
@@ -201,28 +256,48 @@ export function FarmerSidebar({
             </div>
           ) : (
             <form onSubmit={handleHarvestSubmit} className="space-y-4 py-2">
-              {/* Field 1: Pilih Lahan */}
+              {/* Field 1: Pilih Lahan (Wired to Real API Data) */}
               <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-gray-700">
-                  Pilih Lahan Kebun
-                </Label>
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-bold text-gray-700">
+                    Pilih Lahan Kebun
+                  </Label>
+                  {isLoadingLahan && (
+                    <Loader2 className="h-3 w-3 animate-spin text-[#606C38]" />
+                  )}
+                </div>
                 <Select
                   value={lahanSelected}
                   onValueChange={(val) => val && setLahanSelected(val)}
+                  disabled={isLoadingLahan || lahanList.length === 0}
                 >
-                  <SelectTrigger className="h-11 rounded-xl border-gray-300 text-xs">
-                    <SelectValue placeholder="Pilih Lahan" />
-                  </SelectTrigger>
+                  <SelectTrigger className="w-full h-11 rounded-xl border-gray-300 text-xs">
+                    <SelectValue placeholder="Pilih Lahan">
+                      {lahanSelected && lahanList.length > 0
+                        ? (() => {
+                            const selected = lahanList.find(
+                              (lh: any) => lh.id === lahanSelected,
+                            );
+                            return selected
+                              ? `${selected.namaLahan} (${selected.luasM2} m²)`
+                              : "Pilih Lahan";
+                          })()
+                        : "Pilih Lahan"}
+                    </SelectValue>
+                  </SelectTrigger>{" "}
                   <SelectContent className="font-['Quicksand',sans-serif]">
-                    <SelectItem value="Kebun Blok A Utara">
-                      Kebun Kelapa Lahan Utara B (500 m²)
-                    </SelectItem>
-                    <SelectItem value="Kebun Blok Selatan">
-                      Kebun Kelapa Lahan Selatan (100 m²)
-                    </SelectItem>
-                    <SelectItem value="Kebun Blok C">
-                      Kebun Kelapa Lahan Blok C (300 m²)
-                    </SelectItem>
+                    {/* klo blm ada lahan kasi tau user */}
+                    {lahanList.length > 0 ? (
+                      lahanList.map((lh: any) => (
+                        <SelectItem key={lh.id} value={lh.id}>
+                          {lh.namaLahan} ({lh.luasM2} m²)
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="none" disabled>
+                        Belum ada lahan, tambah dulu di menu Lahan
+                      </SelectItem>
+                    )}
                   </SelectContent>
                 </Select>
               </div>
@@ -246,18 +321,14 @@ export function FarmerSidebar({
                     setJenisProduk(opts);
                   }}
                 >
-                  <SelectTrigger className="h-11 rounded-xl border-gray-300 text-xs">
+                  <SelectTrigger className="w-full h-11 rounded-xl border-gray-300 text-xs">
                     <SelectValue placeholder="Kategori" />
                   </SelectTrigger>
                   <SelectContent className="font-['Quicksand',sans-serif]">
-                    <SelectItem value="Produk Primer">
-                      Produk Primer (Hasil Panen Kebun)
-                    </SelectItem>
-                    <SelectItem value="Produk Olahan">
-                      Produk Olahan (Nilai Tambah)
-                    </SelectItem>
+                    <SelectItem value="Produk Primer">Produk Primer</SelectItem>
+                    <SelectItem value="Produk Olahan">Produk Olahan</SelectItem>
                     <SelectItem value="Produk Sampingan">
-                      Produk Sampingan (Ekstra Profit)
+                      Produk Sampingan
                     </SelectItem>
                   </SelectContent>
                 </Select>
@@ -272,7 +343,7 @@ export function FarmerSidebar({
                   value={jenisProduk}
                   onValueChange={(val) => val && setJenisProduk(val)}
                 >
-                  <SelectTrigger className="h-11 rounded-xl border-gray-300 text-xs">
+                  <SelectTrigger className="w-full h-11 rounded-xl border-gray-300 text-xs">
                     <SelectValue placeholder="Jenis Produk" />
                   </SelectTrigger>
                   <SelectContent className="font-['Quicksand',sans-serif]">
@@ -323,6 +394,7 @@ export function FarmerSidebar({
               <DialogFooter className="pt-2">
                 <Button
                   type="submit"
+                  disabled={lahanList.length === 0}
                   className="w-full bg-[#606C38] hover:bg-[#283618] text-white text-xs font-bold h-11 rounded-xl shadow-none flex items-center justify-center gap-2"
                 >
                   <Send className="h-4 w-4" /> Simpan ke Gudang
