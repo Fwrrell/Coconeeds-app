@@ -31,17 +31,20 @@ export function NavMain({
               <SidebarMenuItem key={item.title}>
                 <SidebarMenuButton
                   tooltip={item.title}
-                  asChild
+                  render={
+                    <Link
+                      href={item.url}
+                      className="flex w-full items-center gap-2.5"
+                    />
+                  }
                   className={`w-full rounded-md px-3 py-2 text-sm font-semibold transition-colors ${
                     isActive
                       ? "bg-[#606C38]/10 text-[#606C38] font-bold"
                       : "text-gray-700 hover:bg-gray-100/70 hover:text-gray-900"
                   }`}
                 >
-                  <Link href={item.url} className="flex items-center gap-2.5">
-                    {item.icon}
-                    <span>{item.title}</span>
-                  </Link>
+                  {item.icon}
+                  <span>{item.title}</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             );
