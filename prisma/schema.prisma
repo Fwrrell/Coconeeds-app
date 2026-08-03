@@ -50,6 +50,32 @@ model User {
   ecoPointTxs        EcoPointTx[]        @relation("PetaniEcoPointTx")
   inventory          FarmerInventory[]   @relation("PetaniInventory")
   inventoryMutations InventoryMutation[] @relation("PetaniInventoryMutation")
+  wallet             Wallet?
+}
+
+enum WalletTxType {
+  CREDIT
+  DEBIT
+}
+
+model Wallet {
+  id           String     @id @default(cuid())
+  userId       String     @unique
+  user         User       @relation(fields: [userId], references: [id])
+  balance      Float      @default(0)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  transactions WalletTx[]
+}
+
+model WalletTx {
+  id          String       @id @default(cuid())
+  walletId    String
+  wallet      Wallet       @relation(fields: [walletId], references: [id])
+  amount      Float
+  type        WalletTxType
+  description String?
+  createdAt   DateTime     @default(now())
 }
 
 model AdminWhitelist {
