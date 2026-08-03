@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import {
   LayoutDashboard,
@@ -54,6 +54,7 @@ export function FarmerSidebar({
   setIsHarvestModalOpen?: (open: boolean) => void;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const { data: session } = useSession();
 
   const [internalOpen, setInternalOpen] = useState(false);
@@ -127,26 +128,43 @@ export function FarmerSidebar({
         ? `Panen dari ${selectedLahanObj.namaLahan}`
         : "Penambahan stok panen";
 
-      await fetch("/api/app/inventori", {
+      const mappedKategori =
+        kategori === "Produk Primer" || kategori === "PRODUK_PRIMER"
+          ? "PRODUK_PRIMER"
+          : kategori === "Produk Olahan" || kategori === "PRODUK_OLAHAN"
+            ? "PRODUK_OLAHAN"
+            : "PRODUK_SAMPINGAN";
+
+      const mappedSatuan = satuan.toUpperCase() === "KG" ? "KG" : "LITER";
+
+      const res = await fetch("/api/app/inventori", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          kategori,
+          kategori: mappedKategori,
           jenisProduk,
           jumlah: Number(jumlah),
-          satuan,
+          satuan: mappedSatuan,
           keterangan: keteranganText,
         }),
       });
+
+      if (res.ok) {
+        setModalSuccess(true);
+        // refresh data background biar UI langsung update
+        router.refresh();
+
+        setTimeout(() => {
+          setModalSuccess(false);
+          setModalOpen(false);
+        }, 1200);
+      } else {
+        const errorData = await res.json();
+        console.error("Gagal nyimpen data ke server. Detail:", errorData);
+      }
     } catch (err) {
       console.error("Error submitting panen:", err);
     }
-
-    setModalSuccess(true);
-    setTimeout(() => {
-      setModalSuccess(false);
-      setModalOpen(false);
-    }, 1200);
   };
 
   return (
