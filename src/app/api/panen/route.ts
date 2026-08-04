@@ -7,7 +7,6 @@ import { panenSchema } from "@/lib/validations/panen.schema";
 
 export async function POST(req: Request) {
   try {
-    // auth check
     const session = await auth();
     if (!session || !session.user) {
       return NextResponse.json(
@@ -18,7 +17,6 @@ export async function POST(req: Request) {
 
     const body = await req.json();
 
-    // zod validation
     const parsed = panenSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(
@@ -31,10 +29,6 @@ export async function POST(req: Request) {
       parsed.data;
     const kopdesId = (body as { kopdesId?: string }).kopdesId;
 
-    // role & authorization check
-    // 1. ADMIN can create for any petani
-    // 2. PETANI can only create for themselves
-    // 3. Other roles (e.g., PERUSAHAAN) are not allowed
     if (session.user.role === "PETANI" && session.user.id !== petaniId) {
       return NextResponse.json(
         {
@@ -51,15 +45,11 @@ export async function POST(req: Request) {
       );
     }
 
-    // section untuk menentukan status awal berdasarkan metode pengiriman
-    // petani antar sendiri => PENDING_DROPOFF
-    // petani req dijemput  => PENDING_PICKUP
     const initStatus =
       pengirimanMethod === "SELF_DELIVERY"
         ? PanenStatus.PENDING_DROPOFF
         : PanenStatus.PENDING_PICKUP;
 
-    // save ke db
     const newPanen = await prisma.panen.create({
       data: {
         petaniId,
@@ -90,7 +80,6 @@ export async function POST(req: Request) {
 
 export async function GET(req: Request) {
   try {
-    // auth check
     const session = await auth();
     if (!session || !session.user) {
       return NextResponse.json(
@@ -99,13 +88,11 @@ export async function GET(req: Request) {
       );
     }
 
-    // ambil query param dari URL (misal: ?petaniId=xxx atau ?status=pending)
     const { searchParams } = new URL(req.url);
     const petaniId = searchParams.get("petaniId");
     const status = searchParams.get("status");
     const kopdesId = searchParams.get("kopdesId");
 
-    // authorization check: petani hanya boleh melihat riwayat dia sendiri
     if (session.user.role === "PETANI") {
       if (!petaniId || session.user.id !== petaniId) {
         return NextResponse.json(
@@ -118,11 +105,14 @@ export async function GET(req: Request) {
       }
     }
 
-    // authorization admin: untuk inventory management
     if (session.user.role === "ADMIN" && kopdesId) {
       const wherePanen: any = {
         status: {
-          in: [PanenStatus.PENDING_PICKUP, PanenStatus.PENDING_DROPOFF],
+          in: [
+            PanenStatus.PENDING_PICKUP,
+            PanenStatus.PENDING_DROPOFF,
+            PanenStatus.QC_IN_PROGRESS,
+          ],
         },
       };
 
@@ -138,7 +128,7 @@ export async function GET(req: Request) {
       const [pendingRaw, warehouseRaw] = await Promise.all([
         prisma.panen.findMany({
           where: wherePanen,
-          include: { petani: { select: { name: true } } },
+          include: { petani: { select: { name: true, phoneNumber: true } } },
           orderBy: { createdAt: "desc" },
         }),
         prisma.batch.findMany({
@@ -148,14 +138,18 @@ export async function GET(req: Request) {
         }),
       ]);
 
-      // mapping data sesuai inventory management
       const formattedPending = pendingRaw.map((p) => ({
         id: p.id,
         date: p.tanggalPanen,
         farmerName: p.petani?.name || "Unknown",
+        farmerPhone: p.petani?.phoneNumber || "-",
         type: p.type,
         declaredWeight: p.expectedWeight,
         status: p.status,
+        handoverPin: p.handoverPin,
+        handoverValidatedAt: p.handoverValidatedAt,
+        pickupScheduledAt: p.pickupScheduledAt,
+        pengirimanMethod: p.pengirimanMethod,
       }));
 
       const formattedWarehouse = warehouseRaw.map((b) => {
@@ -181,28 +175,31 @@ export async function GET(req: Request) {
     }
 
     const queryOptions: any = {
-      orderBy: { createdAt: "desc" }, // urutkan data dari terbaru
+      orderBy: { createdAt: "desc" },
       include: {
-        // JOIN untuk mengambil data petani untuk dashboard admin/kopdes
         petani: {
-          select: { name: true, location: true },
+          select: { name: true, phoneNumber: true },
+        },
+        kopdes: {
+          select: { name: true },
         },
       },
     };
 
     if (petaniId) {
-      // page petani request API untuk melihat riwayat setor dia
       queryOptions.where = { petaniId: petaniId };
     } else if (status === "pending") {
-      // page admin req daftar barang yang harus di urus hari ini
       queryOptions.where = {
         status: {
-          in: [PanenStatus.PENDING_PICKUP, PanenStatus.PENDING_DROPOFF],
+          in: [
+            PanenStatus.PENDING_PICKUP,
+            PanenStatus.PENDING_DROPOFF,
+            PanenStatus.QC_IN_PROGRESS,
+          ],
         },
       };
     }
 
-    // ambil data
     const dataPanen = await prisma.panen.findMany(queryOptions);
 
     return NextResponse.json(

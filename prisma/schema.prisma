@@ -159,6 +159,7 @@ model Panen {
   qrCodePass          String? // data di dalam qr code
   handoverPin         String? // 6 digit pin
   handoverValidatedAt DateTime?
+  pickupScheduledAt   DateTime? // tgl dijemput kopdes (tanpa jam)
 
   batchId   String?
   batch     Batch?   @relation(fields: [batchId], references: [id])
