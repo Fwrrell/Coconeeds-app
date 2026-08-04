@@ -44,6 +44,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { useAdminStore } from "@/hooks/useAdminStore";
+import { KopdesSelector } from "@/components/kopdes-selector";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 
@@ -107,9 +108,9 @@ export default function AdminInventoryPage() {
 
   // --- Data Fetching & Submission Logic ---
   const fetchInventory = async () => {
-    if (!activeKopdesId) return;
+    const currentKopdes = activeKopdesId || "ALL";
     try {
-      const res = await fetch(`/api/panen?kopdesId=${activeKopdesId}`);
+      const res = await fetch(`/api/panen?kopdesId=${currentKopdes}`);
       const data = await res.json();
       if (!res.ok) throw new Error("Gagal mengambil data inventory");
       setPendingHarvests(data.pending || []);
@@ -167,12 +168,11 @@ export default function AdminInventoryPage() {
 
   const handleQcSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!selectedHarvest || !activeKopdesId) return;
+    if (!selectedHarvest) return;
 
     const formData = new FormData(event.currentTarget);
     const payload = {
       type: selectedHarvest.type,
-      kopdesId: activeKopdesId,
       panenList: [
         {
           panenId: selectedHarvest.id,
@@ -212,20 +212,6 @@ export default function AdminInventoryPage() {
     setIsQrDialogOpen(true);
   };
 
-  if (!activeKopdesId) {
-    return (
-      <div className="flex h-[80vh] items-center justify-center font-['Quicksand',sans-serif] bg-white">
-        <div className="text-center p-8 border border-gray-200 rounded-md max-w-md">
-          <Warehouse className="mx-auto h-12 w-12 text-[#606C38]" />
-          <h2 className="mt-4 text-xl font-bold text-gray-900">Pilih Kopdes Terlebih Dahulu</h2>
-          <p className="mt-2 text-sm text-gray-500 font-medium">
-            Silakan pilih Kopdes aktif dari header untuk melihat data inventaris stok & QC.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -248,6 +234,7 @@ export default function AdminInventoryPage() {
             Atur jadwal penjemputan armada Kopdes, konfirmasi PIN penyerahan, dan verifikasi mutu (QC).
           </p>
         </div>
+        <KopdesSelector />
       </div>
 
       {/* Stats Bento Grid */}

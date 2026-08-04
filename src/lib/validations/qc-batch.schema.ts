@@ -18,7 +18,8 @@ const panenItemSchema = z.object({
 
 export const qcBatchSchema = z.object({
   type: z.string().min(1, "Tipe batch wajib diisi"),
-  kopdesId: z.string().min(1, "ID Kopdes wajib disertakan"),
+  // kopdesId optional krn derived otomatis dr data panen di backend
+  kopdesId: z.string().optional(),
   panenList: z
     .array(panenItemSchema)
     .min(1, "Daftar hasil panen tidak boleh kosong"),

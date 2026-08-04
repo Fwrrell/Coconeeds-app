@@ -36,7 +36,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const { type, kopdesId, panenList } = parsed.data;
+    const { type, panenList } = parsed.data;
 
     // Cek apakah semua panenId yang diberikan ada di database
     const panenIds = panenList.map((p) => p.panenId);
@@ -57,6 +57,15 @@ export async function POST(req: Request) {
       );
     }
 
+    // derive kopdesId dr data panen di db biar ga dpt ALL ato undefined dr fe (fix P2003)
+    const derivedKopdesId = existingPanens[0]?.kopdesId;
+    if (!derivedKopdesId) {
+      return NextResponse.json(
+        { error: "Data panen tidak memiliki Kopdes yang valid." },
+        { status: 400 },
+      );
+    }
+
     const result = await prisma.$transaction(async (tx) => {
       // total barang aktual dari seluruh barang yang digabung
       const totalWeight = panenList.reduce(
@@ -64,13 +73,13 @@ export async function POST(req: Request) {
         0,
       );
 
-      // bikin batch baru
+      // bikin batch baru pake derived kopdesId
       const newBatch = await tx.batch.create({
         data: {
           type,
           totalWeight,
           status: PanenStatus.IN_WAREHOUSE,
-          kopdesId,
+          kopdesId: derivedKopdesId,
         },
       });
 
