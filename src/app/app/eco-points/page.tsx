@@ -12,6 +12,7 @@ import {
   PlusCircle,
   Loader2,
   Trophy,
+  ChevronRight,
 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -141,8 +142,16 @@ export default function EcoPointsPage() {
     );
   }
 
-  const nextTierNeeded = Math.max(0, (data.summary?.nextTierPoints || 1500) - (data.balance || 1250));
-  const progressPercent = Math.min(100, Math.round(((data.balance || 1250) / (data.summary?.nextTierPoints || 1500)) * 100));
+  const nextTierNeeded = Math.max(
+    0,
+    (data.summary?.nextTierPoints || 1500) - (data.balance || 1250),
+  );
+  const progressPercent = Math.min(
+    100,
+    Math.round(
+      ((data.balance || 1250) / (data.summary?.nextTierPoints || 1500)) * 100,
+    ),
+  );
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto w-full font-['Quicksand',sans-serif] bg-[#FFFFFF]">
@@ -189,20 +198,34 @@ export default function EcoPointsPage() {
           </div>
 
           <div className="pt-1 flex items-center justify-between text-xs">
-            <Badge variant="outline" className="bg-[#606C38]/10 text-[#606C38] border-[#606C38]/20 font-bold text-xs shadow-none">
+            <Badge
+              variant="outline"
+              className="bg-[#606C38]/10 text-[#606C38] border-[#606C38]/20 font-bold text-xs shadow-none"
+            >
               Level: {data.summary?.tier || "Petani Hijau"}
             </Badge>
             <span className="text-[11px] font-bold text-gray-500">
-              {(data.balance || 1250).toLocaleString("id-ID")} / {(data.summary?.nextTierPoints || 1500).toLocaleString("id-ID")}
+              {(data.balance || 1250).toLocaleString("id-ID")} /{" "}
+              {(data.summary?.nextTierPoints || 1500).toLocaleString("id-ID")}
             </span>
           </div>
 
           <div className="space-y-1">
             <Progress value={progressPercent} className="h-2 bg-gray-100" />
             <p className="text-[10px] font-semibold text-gray-400 text-right">
-              {nextTierNeeded.toLocaleString("id-ID")} poin lagi ke level berikutnya
+              {nextTierNeeded.toLocaleString("id-ID")} poin lagi ke level
+              berikutnya
             </p>
           </div>
+          <Link
+            href="/app/EcoPointTrade"
+            className="group inline-flex items-center gap-1 w-fit bg-[#606C38]/5 rounded-xl transition-all px-4 py-2 border border-[#606C38]/20 hover:bg-[#606C38]/10 hover:border-[#606C38]/40"
+          >
+            <span className="text-[#606C38] text-xs font-semibold">
+              Tukar Poin
+            </span>
+            <ChevronRight className="w-4 h-4 group-hover:translate-x-1" />
+          </Link>
         </Card>
 
         {/* card 2: estimasi emisi co2 ditekan */}

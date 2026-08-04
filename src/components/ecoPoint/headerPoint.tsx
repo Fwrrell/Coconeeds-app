@@ -79,7 +79,7 @@ export default function HeaderPoint() {
               </div>
             </div>
             <Link
-              href="#"
+              href="/app/EcoPointTrade/Tier"
               className="font-semibold text-[#DDA15E]  text-sm flex items-center gap-2"
             >
               Lihat Detail <ChevronRight className="w-4 h-4" />

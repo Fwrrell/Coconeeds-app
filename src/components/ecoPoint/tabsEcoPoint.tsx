@@ -4,6 +4,8 @@ import { Gift, LayoutGrid, Trophy } from "lucide-react";
 import DailyMission from "./pageTab/Mission/DailyMission";
 import MonthlyMission from "./pageTab/Mission/MonthlyMission";
 import RewardPage from "./pageTab/reward/RewardPage";
+import LeaderboardClient from "./pageTab/leaderboard/LeaderboardClient";
+import LeaderboardPage from "./pageTab/leaderboard/LeaderboardPage";
 export default function TabsEcoPoint() {
   return (
     <Tabs defaultValue="mission" className="py-5 gap-2">
@@ -42,7 +44,9 @@ export default function TabsEcoPoint() {
       <TabsContent value="reward">
         <RewardPage />
       </TabsContent>
-      <TabsContent value="leaderboard">{/* <LeaderboardPage /> */}</TabsContent>
+      <TabsContent value="leaderboard">
+        <LeaderboardPage />
+      </TabsContent>
     </Tabs>
   );
 }
