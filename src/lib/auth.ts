@@ -1,4 +1,3 @@
-
 import NextAuth, { CredentialsSignin, Profile } from "next-auth";
 import { DefaultJWT } from "next-auth/jwt";
 import CredentialsProvider from "next-auth/providers/credentials";
@@ -70,12 +69,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
         const isPinValid = await bcrypt.compare(
           credentials.pin as string,
-          user.pin
+          user.pin,
         );
         if (!isPinValid) {
           throw new CustomAuthError("PIN yang Anda masukkan salah.");
         }
-                return {
+        return {
           id: user.id,
           name: user.name,
           email: user.email,
@@ -107,15 +106,22 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 data: { email: profile.email },
               });
               dbUser.email = profile.email; // Update in-memory for this run
-              console.log(`[AUTH_REPAIR] Repaired missing email for user ${user.id} to ${profile.email}`);
+              console.log(
+                `[AUTH_REPAIR] Repaired missing email for user ${user.id} to ${profile.email}`,
+              );
             } catch (e) {
-              console.error(`[AUTH_REPAIR] Failed to repair email for user ${user.id}:`, e);
+              console.error(
+                `[AUTH_REPAIR] Failed to repair email for user ${user.id}:`,
+                e,
+              );
             }
           }
 
           const email = dbUser.email?.toLowerCase().trim();
-          
-          console.log(`[AUTH_DIAGNOSTIC] JWT Sign-In Trigger: ${trigger}, Provider: ${account?.provider}, Email: ${email}`);
+
+          console.log(
+            `[AUTH_DIAGNOSTIC] JWT Sign-In Trigger: ${trigger}, Provider: ${account?.provider}, Email: ${email}`,
+          );
 
           if (email) {
             const whitelistedAdmin = await prisma.adminWhitelist.findFirst({
@@ -124,11 +130,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
             if (whitelistedAdmin) {
               console.log(`[AUTH_DIAGNOSTIC] Whitelist HIT for ${email}.`);
-              if (dbUser.role !== Role.ADMIN || dbUser.approvalStatus !== ApprovalStatus.APPROVED) {
-                console.log(`[AUTH_DIAGNOSTIC] Promoting ${email} to ADMIN/APPROVED.`);
+              if (
+                dbUser.role !== Role.ADMIN ||
+                dbUser.approvalStatus !== ApprovalStatus.APPROVED
+              ) {
+                console.log(
+                  `[AUTH_DIAGNOSTIC] Promoting ${email} to ADMIN/APPROVED.`,
+                );
                 const updatedUser = await prisma.user.update({
                   where: { id: user.id },
-                  data: { role: Role.ADMIN, approvalStatus: ApprovalStatus.APPROVED },
+                  data: {
+                    role: Role.ADMIN,
+                    approvalStatus: ApprovalStatus.APPROVED,
+                  },
                 });
                 dbUser.role = updatedUser.role;
                 dbUser.approvalStatus = updatedUser.approvalStatus;
@@ -136,10 +150,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               token.role = Role.ADMIN;
               token.status = ApprovalStatus.APPROVED;
             } else if (trigger === "signUp" && account?.provider === "google") {
-              console.log(`[AUTH_DIAGNOSTIC] New Google user ${email}. Setting to PERUSAHAAN/PENDING.`);
+              console.log(
+                `[AUTH_DIAGNOSTIC] New Google user ${email}. Setting to PERUSAHAAN/PENDING.`,
+              );
               const updatedUser = await prisma.user.update({
                 where: { id: user.id },
-                data: { role: Role.PERUSAHAAN, approvalStatus: ApprovalStatus.PENDING },
+                data: {
+                  role: Role.PERUSAHAAN,
+                  approvalStatus: ApprovalStatus.PENDING,
+                },
               });
               dbUser.role = updatedUser.role;
               dbUser.approvalStatus = updatedUser.approvalStatus;
@@ -148,7 +167,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               token.status = ApprovalStatus.PENDING;
             } else {
               // Existing user, not whitelisted
-              console.log(`[AUTH_DIAGNOSTIC] Existing user ${email}. Role: ${dbUser.role}`);
+              console.log(
+                `[AUTH_DIAGNOSTIC] Existing user ${email}. Role: ${dbUser.role}`,
+              );
               token.role = dbUser.role;
               token.status = dbUser.approvalStatus;
             }
@@ -158,7 +179,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             token.status = dbUser.approvalStatus;
           }
         }
-      } else if (token.role === Role.ADMIN && process.env.NEXT_RUNTIME === "nodejs") {
+      } else if (
+        token.role === Role.ADMIN &&
+        process.env.NEXT_RUNTIME === "nodejs"
+      ) {
         // For existing ADMIN sessions, re-validate against the DB on each request
         // in Node.js runtime only. This prevents proxy crashes on Edge.
         const dbUser = await prisma.user.findUnique({
@@ -184,4 +208,3 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     signIn: "/login",
   },
 });
-
