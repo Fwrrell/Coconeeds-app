@@ -1,5 +1,4 @@
-
-import NextAuth, { CredentialsSignin, Profile } from "next-auth";
+import NextAuth, { CredentialsSignin } from "next-auth";
 import { DefaultJWT } from "next-auth/jwt";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
@@ -11,14 +10,14 @@ import { Role, ApprovalStatus } from "@prisma/client";
 declare module "next-auth" {
   interface User {
     role: Role;
-    status: ApprovalStatus;
+    approvalStatus: ApprovalStatus;
   }
 }
 
 declare module "next-auth/jwt" {
   interface JWT extends DefaultJWT {
     role?: Role;
-    status?: ApprovalStatus;
+    approvalStatus?: ApprovalStatus;
   }
 }
 
@@ -41,13 +40,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
       profile(profile) {
+        // fix type error vercel, ganti status ke approvalStatus
         return {
           id: profile.sub,
           name: profile.name,
           email: profile.email,
           image: profile.picture,
-          role: Role.PETANI, // Default role
-          status: ApprovalStatus.PENDING, // Default status
+          role: Role.PERUSAHAAN, // Default role
+          approvalStatus: ApprovalStatus.PENDING, // Default status
         };
       },
     }),
@@ -75,22 +75,80 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (!isPinValid) {
           throw new CustomAuthError("PIN yang Anda masukkan salah.");
         }
-                return {
+        return {
           id: user.id,
           name: user.name,
           email: user.email,
           image: user.image,
           role: user.role,
-          status: user.approvalStatus,
+          approvalStatus: user.approvalStatus,
         };
       },
     }),
   ],
 
   callbacks: {
+    async signIn({ user, account }) {
+      if (account?.provider === "google" && user.email) {
+        const email = user.email.toLowerCase().trim();
+
+        // 1. FIRST check if whitelisted admin
+        const isWhitelisted = await prisma.adminWhitelist.findFirst({
+          where: { email: { equals: email, mode: "insensitive" } },
+        });
+
+        if (isWhitelisted) {
+          // admin dpt akses langsung
+          return true;
+        }
+
+        // 2. THEN handle non-whitelisted users
+        const dbUser = await prisma.user.findUnique({
+          where: { email },
+        });
+
+        if (!dbUser) {
+          // create perusahaan pending user dlu
+          try {
+            await prisma.user.create({
+              data: {
+                email: user.email,
+                name: user.name,
+                image: user.image,
+                role: Role.PERUSAHAAN,
+                approvalStatus: ApprovalStatus.PENDING,
+                accounts: {
+                  create: {
+                    type: account.type,
+                    provider: account.provider,
+                    providerAccountId: account.providerAccountId,
+                    access_token: account.access_token,
+                    refresh_token: account.refresh_token,
+                    expires_at: account.expires_at,
+                    token_type: account.token_type,
+                    scope: account.scope,
+                    id_token: account.id_token,
+                  },
+                },
+              },
+            });
+          } catch (err) {
+            console.error("[AUTH_GOOGLE_CREATE_ERR]", err);
+          }
+          return "/login?error=PendingApproval";
+        }
+
+        if (dbUser.approvalStatus === ApprovalStatus.PENDING) {
+          return "/login?error=PendingApproval";
+        }
+
+        return true;
+      }
+      return true;
+    },
+
     async jwt({ token, user, account, trigger, profile }) {
       if (user && user.id) {
-        // This branch runs only on initial sign-in
         const dbUser = await prisma.user.findUnique({
           where: { id: user.id },
           select: { email: true, role: true, approvalStatus: true },
@@ -99,23 +157,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (dbUser) {
           token.id = user.id;
 
-          // Repair email if it's missing in DB but present in OAuth profile
           if (!dbUser.email && profile?.email) {
             try {
               await prisma.user.update({
                 where: { id: user.id },
                 data: { email: profile.email },
               });
-              dbUser.email = profile.email; // Update in-memory for this run
-              console.log(`[AUTH_REPAIR] Repaired missing email for user ${user.id} to ${profile.email}`);
+              dbUser.email = profile.email;
             } catch (e) {
               console.error(`[AUTH_REPAIR] Failed to repair email for user ${user.id}:`, e);
             }
           }
 
           const email = dbUser.email?.toLowerCase().trim();
-          
-          console.log(`[AUTH_DIAGNOSTIC] JWT Sign-In Trigger: ${trigger}, Provider: ${account?.provider}, Email: ${email}`);
 
           if (email) {
             const whitelistedAdmin = await prisma.adminWhitelist.findFirst({
@@ -123,9 +177,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             });
 
             if (whitelistedAdmin) {
-              console.log(`[AUTH_DIAGNOSTIC] Whitelist HIT for ${email}.`);
               if (dbUser.role !== Role.ADMIN || dbUser.approvalStatus !== ApprovalStatus.APPROVED) {
-                console.log(`[AUTH_DIAGNOSTIC] Promoting ${email} to ADMIN/APPROVED.`);
                 const updatedUser = await prisma.user.update({
                   where: { id: user.id },
                   data: { role: Role.ADMIN, approvalStatus: ApprovalStatus.APPROVED },
@@ -134,47 +186,32 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 dbUser.approvalStatus = updatedUser.approvalStatus;
               }
               token.role = Role.ADMIN;
-              token.status = ApprovalStatus.APPROVED;
-            } else if (trigger === "signUp" && account?.provider === "google") {
-              console.log(`[AUTH_DIAGNOSTIC] New Google user ${email}. Setting to PERUSAHAAN/PENDING.`);
-              const updatedUser = await prisma.user.update({
-                where: { id: user.id },
-                data: { role: Role.PERUSAHAAN, approvalStatus: ApprovalStatus.PENDING },
-              });
-              dbUser.role = updatedUser.role;
-              dbUser.approvalStatus = updatedUser.approvalStatus;
-
-              token.role = Role.PERUSAHAAN;
-              token.status = ApprovalStatus.PENDING;
+              token.approvalStatus = ApprovalStatus.APPROVED;
             } else {
-              // Existing user, not whitelisted
-              console.log(`[AUTH_DIAGNOSTIC] Existing user ${email}. Role: ${dbUser.role}`);
               token.role = dbUser.role;
-              token.status = dbUser.approvalStatus;
+              token.approvalStatus = dbUser.approvalStatus;
             }
           } else {
-            // User has no email (e.g., credentials user), use existing DB roles
             token.role = dbUser.role;
-            token.status = dbUser.approvalStatus;
+            token.approvalStatus = dbUser.approvalStatus;
           }
         }
       } else if (token.role === Role.ADMIN && process.env.NEXT_RUNTIME === "nodejs") {
-        // For existing ADMIN sessions, re-validate against the DB on each request
-        // in Node.js runtime only. This prevents proxy crashes on Edge.
         const dbUser = await prisma.user.findUnique({
           where: { id: token.id as string },
           select: { role: true, approvalStatus: true },
         });
         token.role = dbUser?.role ?? undefined;
-        token.status = dbUser?.approvalStatus ?? undefined;
+        token.approvalStatus = dbUser?.approvalStatus ?? undefined;
       }
       return token;
     },
+
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.id as string;
         session.user.role = token.role as Role;
-        session.user.status = token.status as ApprovalStatus;
+        session.user.approvalStatus = token.approvalStatus as ApprovalStatus;
       }
       return session;
     },
@@ -184,4 +221,3 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     signIn: "/login",
   },
 });
-
