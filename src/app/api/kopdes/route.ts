@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { kopdesSchema } from "@/lib/validations/kopdes.schema";
 import { z } from "zod";
+import { checkAdminAccess } from "@/lib/admin-guard";
 
 export async function GET() {
   try {
@@ -28,6 +29,11 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  const isAllowed = await checkAdminAccess();
+  if (!isAllowed) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+  }
+
   try {
     const body = await req.json();
     const validatedData = kopdesSchema.parse(body);

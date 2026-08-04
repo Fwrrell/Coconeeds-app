@@ -1,8 +1,14 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { Role } from "@prisma/client";
+import { checkAdminAccess } from "@/lib/admin-guard";
 
 export async function GET(request: Request) {
+  const isAllowed = await checkAdminAccess();
+  if (!isAllowed) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+  }
+
   try {
     const { searchParams } = new URL(request.url);
     const role = searchParams.get("role");

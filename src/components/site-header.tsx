@@ -40,8 +40,8 @@ export function SiteHeader() {
 
         setKopdesList(safeArray);
 
-        if (safeArray.length > 0 && !activeKopdesId) {
-          setActiveKopdes(safeArray[0].id);
+        if (!activeKopdesId) {
+          setActiveKopdes("ALL");
         }
       } catch (error) {
         console.error("Error fetching kopdes:", error);
@@ -51,7 +51,7 @@ export function SiteHeader() {
     };
 
     fetchKopdes();
-  }, [activeKopdesId, setActiveKopdes]);
+  }, [setActiveKopdes]);
 
   const getDisplayValue = () => {
     if (activeKopdesId === "ALL") {
