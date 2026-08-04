@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -22,7 +22,7 @@ import { Input } from "@/components/ui/input";
 type RoleType = "PETANI" | "PERUSAHAAN";
 type LoginStep = "NOMOR" | "PIN";
 
-export default function LoginPage() {
+function LoginContent() {
   const [role, setRole] = useState<RoleType>("PETANI");
 
   // State petani
@@ -358,5 +358,14 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// wajib dibungkus suspense klo pake search params di next 15/16 biar vercel ga ngamuk
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="flex justify-center p-8 text-xs font-bold text-gray-500">Memuat halaman login...</div>}>
+      <LoginContent />
+    </Suspense>
   );
 }
