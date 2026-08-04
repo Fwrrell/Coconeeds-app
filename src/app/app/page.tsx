@@ -34,24 +34,36 @@ const DONUT_COLORS = ["#606C38", "#DDA15E", "#283618", "#BC6C25", "#70E000"];
 
 export default function FarmerDashboardRoot() {
   const [stats, setStats] = useState<any>(null);
+  const [userProfile, setUserProfile] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchStats = async () => {
+    const fetchData = async () => {
       setIsLoading(true);
+      setError(null);
       try {
-        const res = await fetch("/api/app/statistik");
-        if (!res.ok) throw new Error("Gagal memuat data statistik");
-        const data = await res.json();
-        setStats(data);
+        const [statsRes, profileRes] = await Promise.all([
+          fetch("/api/app/statistik"),
+          fetch("/api/app/profil"),
+        ]);
+
+        if (!statsRes.ok) throw new Error("Gagal memuat data statistik");
+
+        const statsData = await statsRes.json();
+        setStats(statsData);
+
+        if (profileRes.ok) {
+          const profileData = await profileRes.json();
+          setUserProfile(profileData);
+        }
       } catch (err: any) {
         setError(err.message);
       } finally {
         setIsLoading(false);
       }
     };
-    fetchStats();
+    fetchData();
   }, []);
 
   const farmerStats = useMemo(() => {
@@ -158,6 +170,11 @@ export default function FarmerDashboardRoot() {
     );
   }
 
+  const kopdesLabel =
+    userProfile?.isVerified && userProfile?.kopdes?.name
+      ? `${userProfile.kopdes.name}`
+      : "Akun belum terverifikasi";
+
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto w-full font-['Quicksand',sans-serif] bg-[#FFFFFF]">
       {/* Header content */}
@@ -167,7 +184,7 @@ export default function FarmerDashboardRoot() {
             <Greeting />
           </div>
           <p className="text-xs sm:text-sm font-semibold text-gray-500 mt-1">
-            <LocalDate /> • Kopdes Minahasa
+            <LocalDate /> • {kopdesLabel}
           </p>
         </div>
       </div>
@@ -179,7 +196,7 @@ export default function FarmerDashboardRoot() {
             key={index}
             className="bg-white border border-gray-200 rounded-2xl shadow-none hover:border-gray-300 transition-colors"
           >
-            <CardContent className="px-4 sm:p-5 flex items-center gap-4">
+            <CardContent className="px-4 sm:px-5 flex items-center gap-4">
               <div className="w-16 h-16 shrink-0 border border-gray-200 bg-gray-50/50 rounded-2xl flex items-center justify-center">
                 <Image
                   src={data.iconSrc}
@@ -197,14 +214,14 @@ export default function FarmerDashboardRoot() {
                 <h3 className="text-xl sm:text-2xl font-extrabold text-gray-900 leading-tight">
                   {data.stat}
                 </h3>
-                <p className="text-[11px] font-medium text-gray-500 mt-0.5">
+                {/* <p className="text-[11px] font-medium text-gray-500 mt-0.5">
                   <Link
                     href={data.link}
                     className="inline-flex items-center gap-1 text-[11px] font-bold text-[#606C38] hover:underline"
                   >
                     Lihat detail <ArrowRight className="h-3 w-3" />
                   </Link>
-                </p>
+                </p> */}
               </div>
             </CardContent>
           </Card>
@@ -324,8 +341,8 @@ export default function FarmerDashboardRoot() {
                     paddingAngle={3}
                     dataKey="value"
                     nameKey="name"
-                     activeShape={renderActiveShape}
-                   >
+                    activeShape={renderActiveShape}
+                  >
                     {stats.charts.donutChartData.map(
                       (entry: any, index: number) => (
                         <Cell

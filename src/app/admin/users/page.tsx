@@ -257,19 +257,24 @@ export default function UserManagementPage() {
   }, []);
 
   // --- Action Handlers ---
-  const handleCreateFarmer: SubmitHandler<RegisterFormValues> = async (
-    data,
-  ) => {
+  const handleCreateFarmer: SubmitHandler<any> = async (data) => {
     try {
+      const payload = {
+        ...data,
+        isVerified: !!data.kopdesId,
+      };
+
       const res = await fetch("/api/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
       });
+
       if (!res.ok)
         throw new Error(
           (await res.json()).error || "Gagal membuat akun petani.",
         );
+
       toast.success("Akun petani berhasil dibuat!");
       resetAdd();
       setIsAddFarmerDialogOpen(false);
@@ -651,26 +656,43 @@ export default function UserManagementPage() {
                                 </Button>
                               )}
                               <DropdownMenu>
-                                <DropdownMenuTrigger>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-8 w-8"
-                                  >
-                                    <MoreHorizontal className="h-4 w-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
+                                <DropdownMenuTrigger
+                                  render={
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-8 w-8"
+                                    >
+                                      <MoreHorizontal className="h-4 w-4" />
+                                    </Button>
+                                  }
+                                />
                                 <DropdownMenuContent>
-                                <DropdownMenuItem onClick={() => { setSelectedFarmer(farmer); setIsDetailSheetOpen(true); }}>
-                                  Lihat Detail
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => { setSelectedFarmer(farmer); setIsEditFarmerDialogOpen(true); }}>
-                                  Edit
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => { setSelectedFarmer(farmer); setIsDeleteFarmerDialogOpen(true); }}>
-                                  Hapus
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
+                                  <DropdownMenuItem
+                                    onClick={() => {
+                                      setSelectedFarmer(farmer);
+                                      setIsDetailSheetOpen(true);
+                                    }}
+                                  >
+                                    Lihat Detail
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => {
+                                      setSelectedFarmer(farmer);
+                                      setIsEditFarmerDialogOpen(true);
+                                    }}
+                                  >
+                                    Edit
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => {
+                                      setSelectedFarmer(farmer);
+                                      setIsDeleteFarmerDialogOpen(true);
+                                    }}
+                                  >
+                                    Hapus
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
                               </DropdownMenu>
                             </TableCell>
                           </TableRow>
@@ -839,6 +861,125 @@ export default function UserManagementPage() {
         </TabsContent>
       </Tabs>
 
+      {/* Dialog Tambah Petani */}
+      <Dialog
+        open={isAddFarmerDialogOpen}
+        onOpenChange={setIsAddFarmerDialogOpen}
+      >
+        <DialogContent className="sm:max-w-md bg-white border border-gray-200 rounded-2xl font-['Quicksand',sans-serif]">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold text-gray-900">
+              Tambah Petani Baru
+            </DialogTitle>
+            <DialogDescription className="text-xs text-gray-500">
+              Isi data di bawah. Pilih Pos Kopdes agar akun otomatis
+              diverifikasi (KYC).
+            </DialogDescription>
+          </DialogHeader>
+          <form
+            onSubmit={handleSubmitAdd(handleCreateFarmer)}
+            className="space-y-4 py-2"
+          >
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-gray-700">
+                Nama Lengkap
+              </label>
+              <Input
+                {...registerAdd("name")}
+                placeholder="Masukkan nama..."
+                className="h-10 text-xs font-semibold"
+              />
+              {errorsAdd.name && (
+                <span className="text-xs text-red-500">
+                  {errorsAdd.name.message as string}
+                </span>
+              )}
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-gray-700">
+                Nomor HP
+              </label>
+              <Input
+                {...registerAdd("phoneNumber")}
+                placeholder="Contoh: 08123456789"
+                className="h-10 text-xs font-semibold"
+              />
+              {errorsAdd.phoneNumber && (
+                <span className="text-xs text-red-500">
+                  {errorsAdd.phoneNumber.message as string}
+                </span>
+              )}
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-gray-700">
+                PIN (6 Digit)
+              </label>
+              <Input
+                type="password"
+                {...registerAdd("pin")}
+                placeholder="******"
+                className="h-10 text-xs font-semibold"
+              />
+              {errorsAdd.pin && (
+                <span className="text-xs text-red-500">
+                  {errorsAdd.pin.message as string}
+                </span>
+              )}
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-gray-700">
+                Assign ke Pos Kopdes
+              </label>
+              <Controller
+                name="kopdesId"
+                control={controlAdd}
+                render={({ field }) => (
+                  <Select
+                    onValueChange={field.onChange}
+                    value={field.value || ""}
+                  >
+                    <SelectTrigger className="w-full h-10 border-gray-200 text-xs font-semibold rounded-md">
+                      <SelectValue placeholder="Pilih Pos Kopdes">
+                        {field.value
+                          ? allKopdes.find((k) => k.id === field.value)?.name
+                          : "Pilih Pos Kopdes"}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {allKopdes.map((k) => (
+                        <SelectItem key={k.id} value={k.id}>
+                          {k.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+            </div>
+
+            <DialogFooter className="pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsAddFarmerDialogOpen(false)}
+              >
+                Batal
+              </Button>
+              <Button
+                type="submit"
+                disabled={isSubmittingAdd}
+                className="bg-[#606C38] text-white font-bold"
+              >
+                {isSubmittingAdd ? "Menyimpan..." : "Simpan & Verifikasi"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
       {/* DIALOGS */}
       <Dialog
         open={isAddAdminDialogOpen}
@@ -940,32 +1081,60 @@ export default function UserManagementPage() {
       <Sheet open={isDetailSheetOpen} onOpenChange={setIsDetailSheetOpen}>
         <SheetContent className="bg-white border-l border-gray-200 font-['Quicksand',sans-serif]">
           <SheetHeader>
-            <SheetTitle className="text-[#606C38] font-bold">Detail Petani</SheetTitle>
-            <SheetDescription className="text-xs text-gray-500">Informasi lengkap profil petani.</SheetDescription>
+            <SheetTitle className="text-[#606C38] font-bold">
+              Detail Petani
+            </SheetTitle>
+            <SheetDescription className="text-xs text-gray-500">
+              Informasi lengkap profil petani.
+            </SheetDescription>
           </SheetHeader>
           {selectedFarmer && (
             <div className="space-y-4 py-4 text-xs">
               <div>
-                <span className="font-bold text-gray-500 block">Nama Lengkap</span>
-                <p className="font-semibold text-gray-900 text-sm">{selectedFarmer.name}</p>
+                <span className="font-bold text-gray-500 block">
+                  Nama Lengkap
+                </span>
+                <p className="font-semibold text-gray-900 text-sm">
+                  {selectedFarmer.name}
+                </p>
               </div>
               <div>
-                <span className="font-bold text-gray-500 block">Nomor Telepon</span>
-                <p className="font-semibold text-gray-900">{selectedFarmer.phoneNumber || "-"}</p>
+                <span className="font-bold text-gray-500 block">
+                  Nomor Telepon
+                </span>
+                <p className="font-semibold text-gray-900">
+                  {selectedFarmer.phoneNumber || "-"}
+                </p>
               </div>
               <div>
-                <span className="font-bold text-gray-500 block">Pos Kopdes</span>
-                <p className="font-semibold text-gray-900">{selectedFarmer.kopdes?.name || "Belum Terhubung"}</p>
+                <span className="font-bold text-gray-500 block">
+                  Pos Kopdes
+                </span>
+                <p className="font-semibold text-gray-900">
+                  {selectedFarmer.kopdes?.name || "Belum Terhubung"}
+                </p>
               </div>
               <div>
-                <span className="font-bold text-gray-500 block">Status Verifikasi</span>
-                <Badge className={selectedFarmer.isVerified ? "bg-[#606C38] text-white" : "bg-amber-100 text-amber-800"}>
+                <span className="font-bold text-gray-500 block">
+                  Status Verifikasi
+                </span>
+                <Badge
+                  className={
+                    selectedFarmer.isVerified
+                      ? "bg-[#606C38] text-white"
+                      : "bg-amber-100 text-amber-800"
+                  }
+                >
                   {selectedFarmer.isVerified ? "Tervalidasi" : "Pending"}
                 </Badge>
               </div>
               <div>
-                <span className="font-bold text-gray-500 block">Eco-Points</span>
-                <p className="font-bold text-[#606C38]">{selectedFarmer.ecoPoints || 0} Pts</p>
+                <span className="font-bold text-gray-500 block">
+                  Eco-Points
+                </span>
+                <p className="font-bold text-[#606C38]">
+                  {selectedFarmer.ecoPoints || 0} Pts
+                </p>
               </div>
             </div>
           )}
@@ -973,40 +1142,83 @@ export default function UserManagementPage() {
       </Sheet>
 
       {/* Edit Dialog Petani */}
-      <Dialog open={isEditFarmerDialogOpen} onOpenChange={setIsEditFarmerDialogOpen}>
+      <Dialog
+        open={isEditFarmerDialogOpen}
+        onOpenChange={setIsEditFarmerDialogOpen}
+      >
         <DialogContent className="sm:max-w-md bg-white border border-gray-200 rounded-2xl font-['Quicksand',sans-serif]">
           <DialogHeader>
-            <DialogTitle className="text-lg font-bold text-gray-900">Edit Data Petani</DialogTitle>
+            <DialogTitle className="text-lg font-bold text-gray-900">
+              Edit Data Petani
+            </DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleSubmitEdit(handleUpdateFarmer)} className="space-y-4 py-2">
+          <form
+            onSubmit={handleSubmitEdit(handleUpdateFarmer)}
+            className="space-y-4 py-2"
+          >
             <div className="space-y-1">
               <label className="text-xs font-bold text-gray-700">Nama</label>
-              <Input {...registerEdit("name")} className="h-10 text-xs font-semibold" />
+              <Input
+                {...registerEdit("name")}
+                className="h-10 text-xs font-semibold"
+              />
             </div>
             <div className="space-y-1">
-              <label className="text-xs font-bold text-gray-700">Nomor HP</label>
-              <Input {...registerEdit("phoneNumber")} className="h-10 text-xs font-semibold" />
+              <label className="text-xs font-bold text-gray-700">
+                Nomor HP
+              </label>
+              <Input
+                {...registerEdit("phoneNumber")}
+                className="h-10 text-xs font-semibold"
+              />
             </div>
             <DialogFooter className="pt-2">
-              <Button type="button" variant="outline" onClick={() => setIsEditFarmerDialogOpen(false)}>Batal</Button>
-              <Button type="submit" disabled={isSubmittingEdit} className="bg-[#606C38] text-white font-bold">Simpan</Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsEditFarmerDialogOpen(false)}
+              >
+                Batal
+              </Button>
+              <Button
+                type="submit"
+                disabled={isSubmittingEdit}
+                className="bg-[#606C38] text-white font-bold"
+              >
+                Simpan
+              </Button>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
 
       {/* Delete Dialog Petani */}
-      <AlertDialog open={isDeleteFarmerDialogOpen} onOpenChange={setIsDeleteFarmerDialogOpen}>
+      <AlertDialog
+        open={isDeleteFarmerDialogOpen}
+        onOpenChange={setIsDeleteFarmerDialogOpen}
+      >
         <AlertDialogContent className="bg-white border border-gray-200 rounded-2xl font-['Quicksand',sans-serif]">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-lg font-bold text-gray-900">Hapus Data Petani</AlertDialogTitle>
+            <AlertDialogTitle className="text-lg font-bold text-gray-900">
+              Hapus Data Petani
+            </AlertDialogTitle>
             <AlertDialogDescription className="text-xs text-gray-500">
-              Apakah Anda yakin ingin menghapus petani {selectedFarmer?.name}? Tindakan ini tidak dapat dibatalkan.
+              Apakah Anda yakin ingin menghapus petani {selectedFarmer?.name}?
+              Tindakan ini tidak dapat dibatalkan.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setIsDeleteFarmerDialogOpen(false)}>Batal</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteFarmer} className="bg-red-600 hover:bg-red-700 text-white font-bold">Hapus</AlertDialogAction>
+            <AlertDialogCancel
+              onClick={() => setIsDeleteFarmerDialogOpen(false)}
+            >
+              Batal
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteFarmer}
+              className="bg-red-600 hover:bg-red-700 text-white font-bold"
+            >
+              Hapus
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
