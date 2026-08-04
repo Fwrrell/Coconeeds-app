@@ -61,7 +61,7 @@ export default async function RootLayout({
     juriAccess = false;
   }
 
-  const isPendingCompany = user?.role === 'PERUSAHAAN' && user?.status === 'PENDING';
+  const isPendingCompany = user?.role === 'PERUSAHAAN' && user?.approvalStatus === 'PENDING';
   const isQuarantined = isPendingCompany && !juriAccess;
 
   return (

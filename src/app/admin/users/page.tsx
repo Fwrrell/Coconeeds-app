@@ -936,7 +936,66 @@ export default function UserManagementPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      {/* Other existing dialogs */}
+      <Dialog open={isVerifyDialogOpen} onOpenChange={setIsVerifyDialogOpen}>
+        <DialogContent className="sm:max-w-md bg-white border border-gray-200 rounded-2xl shadow-none font-['Quicksand',sans-serif]">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold text-gray-900">
+              Verifikasi Petani
+            </DialogTitle>
+            <DialogDescription className="text-xs text-gray-500 font-medium">
+              Pilih pos Kopdes untuk menugaskan petani ini (
+              {selectedFarmer?.name}).
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 py-2">
+            {/* pilih kopdes dlu sblm approve */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-gray-700">
+                Pilih Pos Kopdes
+              </label>
+              <Select
+                value={selectedKopdesId}
+                onValueChange={(val) => val && setSelectedKopdesId(val)}
+              >
+                <SelectTrigger className="w-full h-11 rounded-xl border-gray-300 text-xs font-semibold">
+                  <SelectValue placeholder="Pilih Pos Kopdes">
+                    {selectedKopdesId
+                      ? allKopdes.find((k: any) => k.id === selectedKopdesId)
+                          ?.name
+                      : "Pilih Pos Kopdes"}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent className="font-['Quicksand',sans-serif]">
+                  {allKopdes.map((k: any) => (
+                    <SelectItem key={k.id} value={k.id}>
+                      {k.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <DialogFooter className="pt-2 flex gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsVerifyDialogOpen(false)}
+              className="h-10 text-xs font-bold rounded-xl border-gray-200"
+            >
+              Batal
+            </Button>
+            <Button
+              type="button"
+              onClick={handleConfirmVerification}
+              className="h-10 text-xs font-bold bg-[#606C38] hover:bg-[#283618] text-white rounded-xl shadow-none"
+            >
+              Verifikasi
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </motion.div>
   );
 }

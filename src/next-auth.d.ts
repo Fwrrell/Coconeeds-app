@@ -9,12 +9,14 @@ declare module "next-auth" {
     user: {
       id: string;
       role: Role;
-      status: ApprovalStatus;
+      approvalStatus: ApprovalStatus;
+      isVerified?: boolean;
     } & DefaultSession["user"];
   }
 
   interface User {
     role: Role;
-    status: ApprovalStatus;
+    approvalStatus: ApprovalStatus;
+    isVerified?: boolean;
   }
 }
