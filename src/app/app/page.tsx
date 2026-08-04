@@ -356,12 +356,10 @@ export default function FarmerDashboardRoot() {
               Rekomendasi AI Agronomic Insight
             </CardTitle>
           </div>
-          <Link
-            href="/app/ai-insight"
-            className="text-xs font-bold text-[#606C38] hover:underline"
-          >
-            Lihat Semua
-          </Link>
+          {/* sembunyiin link ai-insight dlu biar ga 404 */}
+          <span className="text-xs font-bold text-[#606C38] opacity-60 cursor-default">
+            AI Active
+          </span>
         </CardHeader>
 
         <CardContent className="pt-4 space-y-4">

@@ -39,6 +39,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { useAdminStore } from "@/hooks/useAdminStore";
+import { KopdesSelector } from "@/components/kopdes-selector";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -95,7 +96,6 @@ export default function MarketplaceB2BPage() {
   const [dealPriceError, setDealPriceError] = useState<string | null>(null);
 
   const fetchWtbListings = async () => {
-    if (!activeKopdesId) return;
     setIsLoading(true);
     try {
       const res = await fetch('/api/wtb');
@@ -224,20 +224,6 @@ export default function MarketplaceB2BPage() {
   };
 
   // Fallback UI
-  if (!activeKopdesId) {
-    return (
-      <div className="flex h-[80vh] items-center justify-center font-['Quicksand',sans-serif] bg-white">
-        <div className="text-center p-8 border border-gray-200 rounded-md max-w-md">
-          <Handshake className="mx-auto h-12 w-12 text-[#606C38]" />
-          <h2 className="mt-4 text-xl font-bold text-gray-900">Pilih Kopdes Terlebih Dahulu</h2>
-          <p className="mt-2 text-sm text-gray-500 font-medium">
-            Silakan pilih Kopdes aktif dari selector header untuk mengakses Marketplace B2B.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -260,6 +246,7 @@ export default function MarketplaceB2BPage() {
             Temukan permintaan pembelian komoditas (WTB) dari mitra off-taker & ajukan penawaran kargo.
           </p>
         </div>
+        <KopdesSelector />
       </div>
 
       <Tabs defaultValue="open-requests" className="space-y-6">

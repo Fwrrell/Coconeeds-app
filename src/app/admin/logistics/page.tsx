@@ -22,6 +22,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Bot, Boxes, CheckCircle, Rocket, Ship, Truck, Layers, Sparkles, Anchor, History } from "lucide-react";
 import { useAdminStore } from "@/hooks/useAdminStore";
+import { KopdesSelector } from "@/components/kopdes-selector";
 import { toast } from "sonner";
 import { Progress } from "@/components/ui/progress";
 import { motion } from "framer-motion";
@@ -57,9 +58,9 @@ export default function LogisticsManagementPage() {
 
   // --- Data Fetching & Business Logic ---
   const fetchLogistics = async () => {
-    if (!activeKopdesId) return;
+    const currentKopdes = activeKopdesId || "ALL";
     try {
-      const res = await fetch(`/api/pengiriman?kopdesId=${activeKopdesId}`);
+      const res = await fetch(`/api/pengiriman?kopdesId=${currentKopdes}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Gagal memuat data logistik");
       setAvailableBatches(data.availableBatches || []);
@@ -148,6 +149,7 @@ export default function LogisticsManagementPage() {
           </p>
         </div>
         <div className="flex items-center gap-3">
+          <KopdesSelector />
           <Badge variant="outline" className="border-gray-300 text-gray-700 bg-gray-50/50 py-1.5 px-3 font-semibold text-xs">
             <Layers className="mr-1.5 h-3.5 w-3.5 text-[#606C38]" />
             {availableBatches.length} Batch Ready

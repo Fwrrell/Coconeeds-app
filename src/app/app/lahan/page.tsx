@@ -105,20 +105,21 @@ export default function LahanPage() {
         text: "Luas Lahan",
         stat: `${totalLuasHa} Ha`,
         iconSrc: "/icon/mapPin.png",
-        link: "/app/ai-insight",
+        // sembunyiin link ai-insight dlu biar ga 404
+        link: "#",
       },
       {
         text: "Pohon Kelapa",
         stat: `${totalPohon} pohon`,
         iconSrc: "/icon/landCond.png",
-        link: "/app/ai-insight",
+        link: "#",
       },
       {
         text: "Akan Panen",
         stat: harvestText,
         subtitle: upcomingHarvest ? formatDate(upcomingHarvest.waktuPanenEstimate) : 'Belum ada estimasi',
         iconSrc: "/icon/dataPanen.png",
-        link: "/app/ai-insight",
+        link: "#",
       },
        {
         text: "Lahan Terdaftar",
