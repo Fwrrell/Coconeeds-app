@@ -70,7 +70,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
         const isPinValid = await bcrypt.compare(
           credentials.pin as string,
-          user.pin
+          user.pin,
         );
         if (!isPinValid) {
           throw new CustomAuthError("PIN yang Anda masukkan salah.");
@@ -165,7 +165,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               });
               dbUser.email = profile.email;
             } catch (e) {
-              console.error(`[AUTH_REPAIR] Failed to repair email for user ${user.id}:`, e);
+              console.error(
+                `[AUTH_REPAIR] Failed to repair email for user ${user.id}:`,
+                e,
+              );
             }
           }
 
@@ -180,7 +183,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               if (dbUser.role !== Role.ADMIN || dbUser.approvalStatus !== ApprovalStatus.APPROVED) {
                 const updatedUser = await prisma.user.update({
                   where: { id: user.id },
-                  data: { role: Role.ADMIN, approvalStatus: ApprovalStatus.APPROVED },
+                  data: {
+                    role: Role.ADMIN,
+                    approvalStatus: ApprovalStatus.APPROVED,
+                  },
                 });
                 dbUser.role = updatedUser.role;
                 dbUser.approvalStatus = updatedUser.approvalStatus;
