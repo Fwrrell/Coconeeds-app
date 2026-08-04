@@ -138,9 +138,8 @@ export default function FarmerPengirimanPage() {
   const [jumlahPengiriman, setJumlahPengiriman] = useState<number | string>("");
   const [hargaDasar, setHargaDasar] = useState<number | string>("");
   const [metodeForm, setMetodeForm] = useState<PengirimanMethod>("PICKUP");
-  const [tanggalForm, setTanggalForm] = useState(
-    new Date().toISOString().split("T")[0],
-  );
+  const todayStr = new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD format
+  const [tanggalForm, setTanggalForm] = useState(todayStr);
 
   const fetchInitialData = useCallback(async () => {
     setIsLoading(true);
@@ -213,6 +212,12 @@ export default function FarmerPengirimanPage() {
       return;
     }
 
+    if (new Date(tanggalForm) < new Date(todayStr)) {
+      alert("Tanggal pengiriman tidak boleh lebih kecil dari tanggal hari ini.");
+      setIsSubmitting(false);
+      return;
+    }
+
     try {
       const response = await fetch("/api/app/pengiriman", {
         method: "POST",
@@ -272,7 +277,7 @@ export default function FarmerPengirimanPage() {
           </div>
           <p className="text-xs sm:text-sm font-semibold text-gray-500 mt-1">
             Pantau status penyerahan komoditas kelapa, validasi PIN/QR
-            penjemputan armada Kopdes, dan riwayat pembayaran.
+            penjemputan Kopdes, dan riwayat pembayaran.
           </p>
         </div>
 
@@ -324,7 +329,7 @@ export default function FarmerPengirimanPage() {
                         {getStatusBadge(order.status)}
                       </div>
                       <p className="text-xs font-semibold text-gray-500">
-                        {order.type} • {order.expectedWeight} Kg/Liter •
+                        {order.type} • {order.expectedWeight} {order.satuan} •
                         Destinasi:{" "}
                         <span className="text-gray-900 font-bold">
                           {order.kopdes?.name || "Kopdes Terhubung"}
@@ -399,7 +404,7 @@ export default function FarmerPengirimanPage() {
                           </span>
                           <p className="font-bold text-gray-900">
                             {order.pengirimanMethod === "PICKUP"
-                              ? "Penjemputan Armada"
+                              ? "Penjemputan"
                               : "Setor Mandiri"}
                           </p>
                         </div>
@@ -460,7 +465,9 @@ export default function FarmerPengirimanPage() {
                   {getStatusBadge(h.status)}
                 </div>
                 <div className="flex items-center justify-between text-xs text-gray-500">
-                  <span>Berat: {h.expectedWeight} Kg</span>
+                  <span>
+                    Berat: {h.expectedWeight} {h.satuan}
+                  </span>
                   <span>
                     {new Date(h.tanggalPanen).toLocaleDateString("id-ID")}
                   </span>
@@ -480,7 +487,7 @@ export default function FarmerPengirimanPage() {
               Buat Pengiriman Baru
             </DialogTitle>
             <DialogDescription className="text-xs font-medium text-gray-500">
-              Pilih produk kelapa dari gudang Anda untuk diserahkan ke armada
+              Pilih produk kelapa dari gudang Anda untuk diserahkan ke
               penjemputan Kopdes.
             </DialogDescription>
           </DialogHeader>
@@ -532,7 +539,11 @@ export default function FarmerPengirimanPage() {
               {/* 2. Jumlah Pengiriman */}
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold text-gray-700">
-                  Jumlah Pengiriman (Kg / Liter)
+                  Jumlah Pengiriman (
+                  {availableInventory.find(
+                    (i) => i.jenisProduk === selectedBarang,
+                  )?.satuan || "Kg"}
+                  )
                 </Label>
                 <Input
                   type="number"
@@ -637,6 +648,7 @@ export default function FarmerPengirimanPage() {
                   <Input
                     type="date"
                     value={tanggalForm}
+                    min={todayStr}
                     onChange={(e) => setTanggalForm(e.target.value)}
                     className="h-11 rounded-xl border-gray-300 text-xs"
                     required
@@ -681,10 +693,6 @@ export default function FarmerPengirimanPage() {
           </DialogHeader>
 
           <div className="py-4 space-y-4">
-            <div className="bg-gray-50 border border-gray-200 p-6 rounded-2xl inline-block mx-auto">
-              <QrCode className="h-32 w-32 text-gray-800 mx-auto" />
-            </div>
-
             <div className="space-y-1">
               <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">
                 6-Digit PIN Penyerahan

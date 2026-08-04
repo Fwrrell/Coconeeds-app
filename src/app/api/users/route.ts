@@ -18,14 +18,18 @@ export async function GET(request: Request) {
       whereClause.role = role;
     }
 
+    const isPetani = role === "PETANI";
+
     const users = await prisma.user.findMany({
       where: whereClause,
       orderBy: { createdAt: "desc" },
       include: {
-        kopdes: role === Role.PETANI ? true : undefined,
-        _count: {
-          select: { panens: role === Role.PETANI ? true : false },
-        },
+        kopdes: true,
+        ...(isPetani && {
+          _count: {
+            select: { panens: true },
+          },
+        }),
       },
     });
 
@@ -48,7 +52,9 @@ export async function GET(request: Request) {
         phoneNumber: user.phoneNumber,
         isVerified: user.isVerified,
         ecoPoints: user.ecoPoints,
-        kopdes: user.kopdes ? { id: user.kopdes.id, name: user.kopdes.name } : null,
+        kopdes: user.kopdes
+          ? { id: user.kopdes.id, name: user.kopdes.name }
+          : null,
         harvests: user._count.panens,
       }));
     }

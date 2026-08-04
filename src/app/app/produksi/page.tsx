@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { getDefaultSatuan } from "@/lib/satuan";
 import {
   Select,
   SelectContent,
@@ -154,7 +155,7 @@ export default function GudangInventoriPage() {
             jumlah: Number(jumlahKonsumsi),
             satuan:
               stocks.find((s) => s.jenisProduk === komoditasKonsumsi)?.satuan ||
-              "Kg",
+              getDefaultSatuan(komoditasKonsumsi),
           };
         } else {
           // susut
@@ -164,7 +165,7 @@ export default function GudangInventoriPage() {
             jumlah: Number(jumlahSusut),
             satuan:
               stocks.find((s) => s.jenisProduk === komoditasSusut)?.satuan ||
-              "Kg",
+              getDefaultSatuan(komoditasSusut),
           };
         }
       }
@@ -547,7 +548,7 @@ export default function GudangInventoriPage() {
                           value={bahanBaku}
                           onValueChange={(value) => setBahanBaku(value ?? "")}
                         >
-                          <SelectTrigger className="h-10 rounded-xl border-gray-300 text-xs">
+                          <SelectTrigger className="w-full h-10 rounded-xl border-gray-300 text-xs">
                             <SelectValue placeholder="Bahan Baku" />
                           </SelectTrigger>
                           <SelectContent className="font-['Quicksand',sans-serif]">
@@ -596,7 +597,7 @@ export default function GudangInventoriPage() {
                           value={hasilOlahan}
                           onValueChange={(value) => setHasilOlahan(value ?? "")}
                         >
-                          <SelectTrigger className="h-10 rounded-xl border-gray-300 text-xs">
+                          <SelectTrigger className="w-full h-10 rounded-xl border-gray-300 text-xs">
                             <SelectValue placeholder="Hasil Olahan" />
                           </SelectTrigger>
                           <SelectContent className="font-['Quicksand',sans-serif]">
@@ -606,8 +607,8 @@ export default function GudangInventoriPage() {
                             <SelectItem value="Minyak Kelapa">
                               Minyak Kelapa
                             </SelectItem>
-                            <SelectItem value="VCO">
-                              VCO (Virgin Coconut Oil)
+                            <SelectItem value="Minyak Kelapa Murni (VCO)">
+                              Minyak Kelapa Murni (VCO)
                             </SelectItem>
                             <SelectItem value="Briket Tempurung">
                               Briket Tempurung
@@ -644,7 +645,7 @@ export default function GudangInventoriPage() {
                         setKomoditasKonsumsi(value ?? "")
                       }
                     >
-                      <SelectTrigger className="h-11 rounded-xl border-gray-300 text-xs">
+                      <SelectTrigger className="w-full h-11 rounded-xl border-gray-300 text-xs">
                         <SelectValue placeholder="Pilih Komoditas" />
                       </SelectTrigger>
                       <SelectContent className="font-['Quicksand',sans-serif]">
@@ -658,7 +659,10 @@ export default function GudangInventoriPage() {
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-xs font-bold text-gray-700">
-                      Jumlah Dikurangi (Kg/Liter)
+                      Jumlah Dikurangi (
+                      {stocks.find((s) => s.jenisProduk === komoditasKonsumsi)
+                        ?.satuan || getDefaultSatuan(komoditasKonsumsi)}
+                      )
                     </Label>
                     <Input
                       type="number"
@@ -681,7 +685,7 @@ export default function GudangInventoriPage() {
                       value={komoditasSusut}
                       onValueChange={(value) => setKomoditasSusut(value ?? "")}
                     >
-                      <SelectTrigger className="h-11 rounded-xl border-gray-300 text-xs">
+                      <SelectTrigger className="w-full h-11 rounded-xl border-gray-300 text-xs">
                         <SelectValue placeholder="Pilih Komoditas" />
                       </SelectTrigger>
                       <SelectContent className="font-['Quicksand',sans-serif]">
@@ -695,7 +699,10 @@ export default function GudangInventoriPage() {
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-xs font-bold text-gray-700">
-                      Jumlah Rusak/Susut (Kg/Liter)
+                      Jumlah Rusak/Susut (
+                      {stocks.find((s) => s.jenisProduk === komoditasSusut)
+                        ?.satuan || getDefaultSatuan(komoditasSusut)}
+                      )
                     </Label>
                     <Input
                       type="number"

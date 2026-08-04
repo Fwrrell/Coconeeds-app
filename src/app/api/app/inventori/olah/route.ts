@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { inventoryProcessSchema } from "@/lib/validations/inventory.schema";
+import { getDefaultSatuan } from "@/lib/satuan";
 import { InventoryMutationReason } from "@prisma/client";
 
 // process raw material into finished product
@@ -67,8 +68,8 @@ export async function POST(req: Request) {
                     petaniId: session.user.id,
                     jenisProduk: hasilOlahan,
                     jumlah: jumlahHasil,
-                    satuan: 'Kg', // default to Kg, bisa disesuaikan
-                    kategori: 'PRODUK_OLAHAN' // asumsi
+                    satuan: getDefaultSatuan(hasilOlahan),
+                    kategori: 'PRODUK_OLAHAN'
                 }
             });
 
