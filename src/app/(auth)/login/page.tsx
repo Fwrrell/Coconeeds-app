@@ -1,6 +1,8 @@
 "use client";
 
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { signIn } from "next-auth/react";
 import { buttonVariants } from "@/components/ui/button";
@@ -31,6 +33,15 @@ export default function LoginPage() {
   // Global state
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // tangkep error dr callback auth js trs kluarin toast
+  const searchParams = useSearchParams();
+  useEffect(() => {
+    const errParam = searchParams?.get("error");
+    if (errParam === "PendingApproval") {
+      toast.error("Akun Anda terdaftar sebagai Mitra dan sedang menunggu verifikasi Admin.");
+    }
+  }, [searchParams]);
 
   const inputPinRef = useRef<HTMLInputElement>(null);
   const pinArray = Array.from({ length: 6 });

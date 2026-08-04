@@ -1,10 +1,13 @@
+import { auth } from "@/lib/auth";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SiteHeader } from "@/components/site-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 
-export default function AdminLayout({
+export default async function AdminLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  const session = await auth();
+
   return (
     <SidebarProvider
       style={
@@ -14,7 +17,7 @@ export default function AdminLayout({
         } as React.CSSProperties
       }
     >
-      <AppSidebar variant="inset" />
+      <AppSidebar variant="inset" user={session?.user} />
       <SidebarInset className="bg-[#FFFFFF] min-h-screen font-['Quicksand',sans-serif]">
         <SiteHeader />
         <div className="flex flex-1 flex-col bg-[#FFFFFF]">
@@ -28,4 +31,3 @@ export default function AdminLayout({
     </SidebarProvider>
   );
 }
-

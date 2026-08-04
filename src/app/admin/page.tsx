@@ -78,12 +78,12 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (activeKopdesId === null) return;
+    const currentKopdes = activeKopdesId || "ALL";
 
     const fetchDashboard = async () => {
       setIsLoading(true);
       try {
-        const res = await fetch(`/api/dashboard?kopdesId=${activeKopdesId}`);
+        const res = await fetch(`/api/dashboard?kopdesId=${currentKopdes}`);
         if (!res.ok) throw new Error("Failed to fetch dashboard data");
         const result = await res.json();
         setData(result);

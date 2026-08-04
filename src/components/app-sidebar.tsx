@@ -26,59 +26,67 @@ import {
   Sprout,
 } from "lucide-react";
 
-const data = {
-  user: {
-    name: "Admin Coconeeds",
-    email: "admin@Coconeeds.id",
-    avatar: "",
+const navMainData = [
+  {
+    title: "Dashboard",
+    url: "/admin",
+    icon: <LayoutDashboard className="h-4 w-4 text-[#606C38]" />,
   },
-  navMain: [
-    {
-      title: "Dashboard",
-      url: "/admin",
-      icon: <LayoutDashboard className="h-4 w-4 text-[#606C38]" />,
-    },
-    {
-      title: "Manajemen Pengguna",
-      url: "/admin/users",
-      icon: <Users className="h-4 w-4 text-[#606C38]" />,
-    },
-    {
-      title: "Manajemen Kopdes",
-      url: "/admin/kopdes",
-      icon: <Store className="h-4 w-4 text-[#606C38]" />,
-    },
-    {
-      title: "Manajemen Inventaris",
-      url: "/admin/inventory",
-      icon: <Boxes className="h-4 w-4 text-[#606C38]" />,
-    },
-    {
-      title: "Manajemen Logistik",
-      url: "/admin/logistics",
-      icon: <Truck className="h-4 w-4 text-[#606C38]" />,
-    },
-    {
-      title: "Marketplace B2B",
-      url: "/admin/marketplace",
-      icon: <ShoppingCart className="h-4 w-4 text-[#606C38]" />,
-    },
-  ],
-  navSecondary: [
-    {
-      title: "Pengaturan",
-      url: "/admin/settings",
-      icon: <Settings2 className="h-4 w-4 text-gray-500" />,
-    },
-    {
-      title: "Bantuan & Layanan",
-      url: "#",
-      icon: <HelpCircle className="h-4 w-4 text-gray-500" />,
-    },
-  ],
-};
+  {
+    title: "Manajemen Pengguna",
+    url: "/admin/users",
+    icon: <Users className="h-4 w-4 text-[#606C38]" />,
+  },
+  {
+    title: "Manajemen Kopdes",
+    url: "/admin/kopdes",
+    icon: <Store className="h-4 w-4 text-[#606C38]" />,
+  },
+  {
+    title: "Manajemen Inventaris",
+    url: "/admin/inventory",
+    icon: <Boxes className="h-4 w-4 text-[#606C38]" />,
+  },
+  {
+    title: "Manajemen Logistik",
+    url: "/admin/logistics",
+    icon: <Truck className="h-4 w-4 text-[#606C38]" />,
+  },
+  {
+    title: "Marketplace B2B",
+    url: "/admin/marketplace",
+    icon: <ShoppingCart className="h-4 w-4 text-[#606C38]" />,
+  },
+];
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+const navSecondaryData = [
+  {
+    title: "Pengaturan",
+    url: "/admin/settings",
+    icon: <Settings2 className="h-4 w-4 text-gray-500" />,
+  },
+  {
+    title: "Bantuan & Layanan",
+    url: "#",
+    icon: <HelpCircle className="h-4 w-4 text-gray-500" />,
+  },
+];
+
+interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
+  user?: {
+    name?: string | null;
+    email?: string | null;
+    image?: string | null;
+  };
+}
+
+export function AppSidebar({ user, ...props }: AppSidebarProps) {
+  const userData = {
+    name: user?.name || "Admin Coconeeds",
+    email: user?.email || "admin@Coconeeds.id",
+    avatar: user?.image || "",
+  };
+
   return (
     <Sidebar collapsible="offcanvas" {...props}>
       <SidebarHeader>
@@ -105,15 +113,15 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
 
       <SidebarContent className="px-2 py-3">
-        <NavMain items={data.navMain} />
+        <NavMain items={navMainData} />
         <NavSecondary
-          items={data.navSecondary}
+          items={navSecondaryData}
           className="mt-auto pt-4 border-t border-gray-100"
         />
       </SidebarContent>
 
       <SidebarFooter className="border-t border-gray-100 p-2">
-        <NavUser user={data.user} />
+        <NavUser user={userData} />
       </SidebarFooter>
     </Sidebar>
   );

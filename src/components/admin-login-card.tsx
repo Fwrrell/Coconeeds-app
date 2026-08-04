@@ -9,34 +9,45 @@ import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
 
 export function AdminLoginCard() {
-  const [isLoading, setIsLoading] = useState(true); // Start as true to handle initial session check
+  const [isLoading, setIsLoading] = useState(true);
   const [isSigningIn, setIsSigningIn] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
-  // Phase 2: Check session on mount (after returning from OAuth)
   useEffect(() => {
     const checkSession = async () => {
       try {
         const sessionRes = await fetch("/api/auth/session");
-        if (!sessionRes.ok) { // Not logged in or error
-            setIsLoading(false);
-            return;
+        if (!sessionRes.ok) {
+          setIsLoading(false);
+          return;
         }
-        
+
         const session = await sessionRes.json();
-        
-        // Check if there's an active session with a user object
+
         if (session && session.user && session.user.id) {
-          const isApprovedAdmin = session.user.role === "ADMIN" && session.user.status === "APPROVED";
-          
+          // pake string aja biar tsc ga ngamuk + cek juri access
+          const isApprovedAdmin =
+            session.user.role === "ADMIN" &&
+            (session.user.approvalStatus === "APPROVED" || (session.user as any).status === "APPROVED");
+
           if (isApprovedAdmin) {
             router.replace("/admin");
-          } else {
-            // Logged in, but not an approved admin. Show error and sign out.
-            setError("Email tidak terdaftar sebagai admin platform.");
-            await signOut({ redirect: false });
+            return;
           }
+
+          // Cek juri access klo bukan admin approved
+          const settingsRes = await fetch("/api/settings");
+          if (settingsRes.ok) {
+            const settings = await settingsRes.json();
+            if (settings?.data?.juriAccess) {
+              router.replace("/admin");
+              return;
+            }
+          }
+
+          setError("Email tidak terdaftar sebagai admin platform.");
+          await signOut({ redirect: false });
         }
       } catch (e) {
         console.error("Failed to check session", e);
@@ -49,15 +60,13 @@ export function AdminLoginCard() {
     checkSession();
   }, [router]);
 
-
-  // Phase 1: Handle the login button click
   const handleAdminLogin = async () => {
     setIsSigningIn(true);
     setError(null);
 
     const result = await signIn("google", {
       redirect: false,
-      callbackUrl: "/admin/login", // Important: callback here to trigger useEffect check
+      callbackUrl: "/admin/login",
     });
 
     if (result?.error) {
@@ -67,10 +76,8 @@ export function AdminLoginCard() {
     }
 
     if (result?.url) {
-      // Manually navigate to the Google OAuth page
       window.location.href = result.url;
     } else {
-      // This case should not happen in a normal flow
       setError("URL otentikasi tidak ditemukan.");
       setIsSigningIn(false);
     }
@@ -83,15 +90,12 @@ export function AdminLoginCard() {
       transition={{ duration: 0.3 }}
       className="flex flex-col items-center w-full font-['Quicksand',sans-serif]"
     >
-      {/* Main Card */}
       <div className="w-full bg-white border border-gray-200 rounded-md p-6 sm:p-10 shadow-none space-y-6">
         <div className="flex flex-col items-center text-center space-y-3">
-          {/* Icon Shield */}
           <div className="flex h-14 w-14 items-center justify-center rounded-md bg-[#606C38] text-white">
             <ShieldCheck className="h-7 w-7" />
           </div>
 
-          {/* Teks Header */}
           <div className="space-y-1">
             <h2 className="text-xl font-bold text-gray-900 tracking-tight">
               Otentikasi Administrator
@@ -102,16 +106,16 @@ export function AdminLoginCard() {
             </p>
           </div>
         </div>
-        
+
         {error && (
-            <motion.div 
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex items-center gap-3 rounded-md border border-red-200 bg-red-50 p-3 text-xs font-semibold text-red-800"
-            >
-                <AlertTriangle className="h-4 w-4 flex-shrink-0" />
-                <p>{error}</p>
-            </motion.div>
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex items-center gap-3 rounded-md border border-red-200 bg-red-50 p-3 text-xs font-semibold text-red-800"
+          >
+            <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+            <p>{error}</p>
+          </motion.div>
         )}
 
         <div className="pt-2">
@@ -153,7 +157,6 @@ export function AdminLoginCard() {
         </div>
       </div>
 
-      {/* Footer */}
       <div className="mt-6 flex items-center justify-center gap-2 text-gray-400">
         <Sprout className="h-4 w-4 text-[#606C38]" />
         <span className="text-xs font-bold text-gray-700">Coconeeds</span>

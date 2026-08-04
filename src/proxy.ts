@@ -13,7 +13,7 @@ export default auth(async (req) => {
   const { nextUrl } = req;
   const isLoggedIn = !!req.auth;
   const userRole = req.auth?.user?.role;
-  const userStatus = req.auth?.user?.status;
+  const userStatus = req.auth?.user?.approvalStatus;
 
   const isApiAuthRoute = nextUrl.pathname.startsWith("/api/auth");
   const isAuthRoute = authRoutes.includes(nextUrl.pathname);

@@ -20,7 +20,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Separator } from "@/components/ui/separator";
-import { Bot, Boxes, CheckCircle, Rocket, Ship, Truck, Layers, Sparkles } from "lucide-react";
+import { Bot, Boxes, CheckCircle, Rocket, Ship, Truck, Layers, Sparkles, Anchor, History } from "lucide-react";
 import { useAdminStore } from "@/hooks/useAdminStore";
 import { toast } from "sonner";
 import { Progress } from "@/components/ui/progress";
@@ -36,15 +36,26 @@ type Batch = {
   originKopdes: string;
 };
 
+type Shipment = {
+  id: string;
+  namaKapal: string;
+  rute: string;
+  totalBiaya: number;
+  totalWeight: number;
+  status: string;
+  createdAt: string;
+};
+
 // --- Main Component ---
 export default function LogisticsManagementPage() {
   const { activeKopdesId } = useAdminStore();
   const [availableBatches, setAvailableBatches] = useState<Batch[]>([]);
+  const [historyShipments, setHistoryShipments] = useState<Shipment[]>([]);
   const [isAiRunning, setIsAiRunning] = useState(false);
   const [aiProgress, setAiProgress] = useState(0);
   const [showAiResult, setShowAiResult] = useState(false);
 
-  // --- Data Fetching & Business Logic (Preserved) ---
+  // --- Data Fetching & Business Logic ---
   const fetchLogistics = async () => {
     if (!activeKopdesId) return;
     try {
@@ -52,6 +63,7 @@ export default function LogisticsManagementPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Gagal memuat data logistik");
       setAvailableBatches(data.availableBatches || []);
+      setHistoryShipments(data.shipments || []);
     } catch (error: any) {
       console.error("Logistics Fetch Error:", error);
       toast.error(error.message);
@@ -79,10 +91,36 @@ export default function LogisticsManagementPage() {
     }, 300);
   };
 
+  // execute pengiriman kapal real ke api db
   const handleConfirmShipment = async () => {
-    // Preserved business logic
-    toast.success("Pengiriman dan Split Bill berhasil dibuat!");
-    setShowAiResult(false);
+    if (availableBatches.length === 0) {
+      toast.error("Tidak ada batch kargo yang tersedia untuk dikirim.");
+      return;
+    }
+
+    try {
+      const payload = {
+        namaKapal: "KM Logistik Nusantara 4",
+        rute: "Minahasa -> Pelabuhan Tanjung Perak Surabaya",
+        totalBiaya: 15000000,
+        batchIds: availableBatches.map((b) => b.id),
+      };
+
+      const res = await fetch("/api/pengiriman", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Gagal membuat pengiriman kapal.");
+
+      toast.success("Pengiriman Kapal & Split Bill berhasil dibuat!");
+      setShowAiResult(false);
+      await fetchLogistics();
+    } catch (err: any) {
+      toast.error(err.message);
+    }
   };
 
   const totalWeight = availableBatches.reduce((acc, curr) => acc + (curr.weight || 0), 0);
@@ -196,7 +234,7 @@ export default function LogisticsManagementPage() {
           </div>
           <Button
             onClick={runAiPooling}
-            disabled={isAiRunning}
+            disabled={isAiRunning || availableBatches.length === 0}
             className="bg-[#606C38] hover:bg-[#283618] text-white font-semibold shadow-none rounded-md px-4 py-2 text-sm shrink-0"
           >
             <Rocket className="mr-2 h-4 w-4" />
@@ -237,7 +275,7 @@ export default function LogisticsManagementPage() {
                 <div className="space-y-2 border border-gray-100 rounded-md p-3.5 bg-gray-50/40">
                   <InfoItem label="Saran Kapal" value="KM Logistik Nusantara 4" icon={Ship} />
                   <Separator className="bg-gray-200/60" />
-                  <InfoItem label="Total Kargo" value="6.5 Ton" />
+                  <InfoItem label="Total Kargo" value={`${(totalWeight / 1000).toFixed(1)} Ton`} />
                   <Separator className="bg-gray-200/60" />
                   <InfoItem label="Estimasi Biaya" value="Rp 15.000.000" />
                 </div>
@@ -248,9 +286,7 @@ export default function LogisticsManagementPage() {
                   Kalkulasi Split Bill (Proporsional)
                 </h4>
                 <div className="p-3.5 rounded-md bg-gray-50/40 border border-gray-100 space-y-2.5">
-                  <SplitBillItem kopdes="Kopdes Cimahi" weight={2450.0} percentage={37.7} />
-                  <Separator className="bg-gray-200/60" />
-                  <SplitBillItem kopdes="Kopdes Bandung" weight={4050.0} percentage={62.3} />
+                  <SplitBillItem kopdes="Kopdes Terhubung" weight={totalWeight} percentage={100} />
                 </div>
               </div>
             </CardContent>
@@ -259,11 +295,65 @@ export default function LogisticsManagementPage() {
                 onClick={handleConfirmShipment}
                 className="w-full sm:w-auto bg-[#606C38] hover:bg-[#283618] text-white font-semibold shadow-none rounded-md px-5"
               >
-                Konfirmasi & Buat Pengiriman
+                Konfirmasi & Buat Pengiriman Real
               </Button>
             </CardFooter>
           </Card>
         )}
+      </div>
+
+      <Separator className="bg-gray-200" />
+
+      {/* tampilin riwayat pengiriman kapal real */}
+      <div className="space-y-3">
+        <h2 className="text-base font-bold text-gray-800 flex items-center gap-2">
+          <Anchor className="h-4 w-4 text-[#606C38]" />
+          Riwayat Dispatch Pengiriman Kapal Real ({historyShipments.length})
+        </h2>
+
+        <div className="bg-white border border-gray-200 rounded-md overflow-hidden">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader className="bg-[#FEFAE0]/40 border-b border-gray-200">
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="text-gray-700 font-bold text-xs uppercase tracking-wider">Nama Kapal</TableHead>
+                  <TableHead className="text-gray-700 font-bold text-xs uppercase tracking-wider">Rute Laut</TableHead>
+                  <TableHead className="text-gray-700 font-bold text-xs uppercase tracking-wider">Total Berat</TableHead>
+                  <TableHead className="text-gray-700 font-bold text-xs uppercase tracking-wider">Total Biaya</TableHead>
+                  <TableHead className="text-gray-700 font-bold text-xs uppercase tracking-wider">Status Dispatch</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {historyShipments.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-8 text-sm text-gray-400 font-medium">
+                      Belum ada dispatch pengiriman kapal yang dilakukan.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  historyShipments.map((s) => (
+                    <TableRow
+                      key={s.id}
+                      className="border-b border-gray-100 odd:bg-white even:bg-[#FEFAE0]/10 hover:bg-gray-50/80 transition-colors"
+                    >
+                      <TableCell className="font-bold text-gray-900 text-sm flex items-center gap-2">
+                        <Ship className="h-4 w-4 text-[#606C38]" /> {s.namaKapal}
+                      </TableCell>
+                      <TableCell className="text-xs font-semibold text-gray-700">{s.rute}</TableCell>
+                      <TableCell className="text-sm font-semibold text-gray-900">{s.totalWeight?.toFixed(1) || 0} kg</TableCell>
+                      <TableCell className="text-sm font-bold text-[#606C38]">Rp {s.totalBiaya?.toLocaleString("id-ID") || 0}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="border-purple-300 bg-purple-50 text-purple-800 font-bold text-xs">
+                          {s.status}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
       </div>
     </motion.div>
   );
@@ -308,4 +398,3 @@ const SplitBillItem = ({
     </Badge>
   </div>
 );
-
