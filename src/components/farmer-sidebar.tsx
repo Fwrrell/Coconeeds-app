@@ -93,7 +93,36 @@ export function FarmerSidebar({
   const [jenisProduk, setJenisProduk] = useState("Kelapa Utuh");
   const [jumlah, setJumlah] = useState(500);
   const [satuan, setSatuan] = useState("Kg");
-  const [lahanSelected, setLahanSelected] = useState("Kebun Blok A Utara");
+  const [lahanSelected, setLahanSelected] = useState<string>("");
+
+  // real lahan data state
+  const [lahanList, setLahanList] = useState<any[]>([]);
+  const [isLoadingLahan, setIsLoadingLahan] = useState(false);
+
+  // fetch data lahan user dlu sblm render modal
+  const fetchLahanList = useCallback(async () => {
+    setIsLoadingLahan(true);
+    try {
+      const res = await fetch("/api/app/lahan");
+      if (res.ok) {
+        const data = await res.json();
+        setLahanList(data);
+        if (data && data.length > 0) {
+          setLahanSelected(data[0].id);
+        }
+      }
+    } catch (err) {
+      console.error("Gagal load lahan data:", err);
+    } finally {
+      setIsLoadingLahan(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isModalOpen) {
+      fetchLahanList();
+    }
+  }, [isModalOpen, fetchLahanList]);
 
   // filter options produk berdasarkan kategori komoditas
   const getJenisOptions = () => {
@@ -156,10 +185,6 @@ export function FarmerSidebar({
     } catch (err) {
       console.error("Error submitting panen:", err);
     }
-  };
-
-  const handleHarvestSubmitWithTour = (e: React.FormEvent) => {
-    handleHarvestSubmit(e);
   };
 
   return (
@@ -274,11 +299,16 @@ export function FarmerSidebar({
             </div>
           ) : (
             <form onSubmit={handleHarvestSubmit} className="space-y-4 py-2">
-              {/* Field 1: Pilih Lahan */}
+              {/* Field 1: Pilih Lahan (Wired to Real API Data) */}
               <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-gray-700">
-                  Pilih Lahan Kebun
-                </Label>
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-bold text-gray-700">
+                    Pilih Lahan Kebun
+                  </Label>
+                  {isLoadingLahan && (
+                    <Loader2 className="h-3 w-3 animate-spin text-[#606C38]" />
+                  )}
+                </div>
                 <Select
                   value={lahanSelected}
                   onValueChange={(val) => val && setLahanSelected(val)}
