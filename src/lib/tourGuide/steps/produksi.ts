@@ -1,4 +1,5 @@
 import { DriveStep, Driver } from "driver.js";
+import { getNavSelector } from "../tourController";
 
 export interface ProduksiStepContext {
   getDriver: () => Driver | null;
@@ -45,11 +46,14 @@ export const getProduksiSteps = (
     },
   },
   {
-    element: '[data-tour="hasil-panen"]',
+    element: getNavSelector(
+      '[data-tour="hasil-panen"]',
+      '[data-tour="hasil-panen-mobile"]',
+    ),
     popover: {
       title: "Catat Hasil Panen",
       description:
-        "Gunakan tombol ini pada sidebar untuk mencatat hasil panen kelapa baru yang masuk ke inventori gudang.",
+        "Gunakan tombol ini untuk mencatat hasil panen kelapa baru yang masuk ke inventori gudang.",
       nextBtnText: "Buka Form Catat Panen →",
       onNextClick: () => {
         context?.onOpenDialogAndProceed(
@@ -224,7 +228,10 @@ export const getProduksiSteps = (
     },
   },
   {
-    element: '[data-tour="menu-pengiriman"]',
+    element: getNavSelector(
+      '[data-tour="menu-pengiriman"]',
+      '[data-tour="menu-pengiriman-mobile"]',
+    ),
     popover: {
       title: "Pengiriman",
       description:

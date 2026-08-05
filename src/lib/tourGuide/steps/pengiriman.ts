@@ -1,4 +1,5 @@
 import { DriveStep, Driver } from "driver.js";
+import { getNavSelector } from "../tourController";
 
 export interface PengirimanStepContext {
   getDriver: () => Driver | null;
@@ -123,7 +124,10 @@ export const getPengirimanSteps = (
     },
   },
   {
-    element: '[data-tour="menu-Ecopoint"]',
+    element: getNavSelector(
+      '[data-tour="menu-Ecopoint"]',
+      '[data-tour="island-nav"]',
+    ),
     popover: {
       title: "Eco-Points",
       description:

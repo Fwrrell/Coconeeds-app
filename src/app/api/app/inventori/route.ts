@@ -12,7 +12,7 @@ export async function GET(req: Request) {
   }
 
   try {
-    const [stocks, mutations] = await Promise.all([
+    const [stocks, rawMutations, user] = await Promise.all([
       prisma.farmerInventory.findMany({
         where: { petaniId: session.user.id },
         orderBy: { kategori: 'asc' },
@@ -22,7 +22,29 @@ export async function GET(req: Request) {
         orderBy: { createdAt: "desc" },
         take: 50,
       }),
+      prisma.user.findUnique({
+        where: { id: session.user.id },
+        include: { kopdes: true },
+      }),
     ]);
+
+    const kopdesName = user?.kopdes?.name || "Koperasi Desa";
+    const uuidRegex = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
+
+    const mutations = rawMutations.map((m) => {
+      let ket = m.keterangan || "";
+      if (uuidRegex.test(ket)) {
+        ket = `Pengiriman ${m.komoditas} ke ${kopdesName}`;
+      } else if (ket === "Pengurangan stok untuk KONSUMSI_PRIBADI") {
+        ket = `Konsumsi pribadi ${m.komoditas}`;
+      } else if (ket === "Pengurangan stok untuk RUSAK_SUSUT") {
+        ket = `Penyusutan / kerusakan stok ${m.komoditas}`;
+      }
+      return {
+        ...m,
+        keterangan: ket,
+      };
+    });
 
     return NextResponse.json({ stocks, mutations });
 

@@ -1,7 +1,7 @@
 import { IdCard } from "lucide-react";
 import React from "react";
 
-function Core() {
+export function Core() {
   const advantageDesc = [
     {
       stat: "AI Forecasting",
@@ -30,8 +30,8 @@ function Core() {
   ];
   return (
     <>
-      <div className="flex flex-col items-center gap-12 py-12 px-4 w-full">
-        <h2 className="capitalize font-semibold gap-6 text-4xl max-w-[800px] text-center">
+      <div className="flex flex-col items-center gap-12 py-24  px-4 w-full">
+        <h2 className="capitalize font-semibold gap-6 text-4xl max-w-[800px] text-[#283618] text-center">
           Membangun Agroindustri yang Lebih Efisien dan Berkelanjutan
         </h2>
 
@@ -39,9 +39,9 @@ function Core() {
           {advantageDesc.map((card, index) => (
             <div
               key={index}
-              className="group flex flex-col rounded-2xl lg:gap-0 p-8 border border-gray-200 justify-center items-center cursor-pointer shadow-sm hover:shadow-lg hover:border-[#3BA275]/50 transition-all duration-500"
+              className="group flex flex-col rounded-2xl lg:gap-0 p-8 border border-gray-200 justify-center items-center cursor-pointer shadow-sm hover:shadow-lg bg-[#FEFEFC] hover:border-[#606C38]/40 transition-all duration-500"
             >
-              <span className="text-xl xl:text-3xl font-bold text-[#3BA275]/80 mb-3 lg:group-hover:-translate-y-1 transition-transform duration-500">
+              <span className="text-xl xl:text-3xl font-bold text-[#606C38]/80 mb-3 lg:group-hover:-translate-y-1 group-hover:text-[#283618] transition-transform duration-500">
                 {card.stat}
               </span>
               <p className="font-regular text-xl text-center lg:group-hover:-translate-y-1 transition-transform duration-500">
@@ -49,7 +49,7 @@ function Core() {
               </p>
               <div className="grid grid-rows-[1fr] xl:grid-rows-[0fr] opacity-100 xl:opacity-0 xl:group-hover:grid-rows-[1fr] xl:group-hover:opacity-100 transition-all duration-500 ease-in-out w-full">
                 <div className="overflow-hidden">
-                  <p className="pt-4 text-xs lg:text-sm text-center xl:text-justify text-gray-500 font-normal leading-relaxed border-t border-gray-100 mt-4">
+                  <p className="pt-4 text-xs lg:text-sm text-center xl:text-justify text-gray-500 font-normal leading-relaxed border-t border-gray-100 mt-4 text-[#6B7280]">
                     {card.description}
                   </p>
                 </div>
@@ -61,5 +61,3 @@ function Core() {
     </>
   );
 }
-
-export default Core;

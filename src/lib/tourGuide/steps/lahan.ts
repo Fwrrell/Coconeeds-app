@@ -1,4 +1,5 @@
 import { DriveStep, Driver } from "driver.js";
+import { getNavSelector } from "../tourController";
 
 export interface LahanStepContext {
   getDriver: () => Driver | null;
@@ -155,7 +156,10 @@ export const getLahanSteps = (
     },
   },
   {
-    element: '[data-tour="menu-produksi"]',
+    element: getNavSelector(
+      '[data-tour="menu-produksi"]',
+      '[data-tour="island-nav"]',
+    ),
     popover: {
       title: "Produksi & Stok",
       description:

@@ -13,6 +13,8 @@ import {
   Loader2,
   Trophy,
   ChevronRight,
+  CheckCircle2,
+  Truck,
 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -26,12 +28,13 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-// inline types dlu biar client side ga import prisma
+import { toast } from "sonner";
+
+// inline types biar client side ga import prisma
 type RewardCatalog = any;
 type EcoPointTx = any;
 
-// --- STATIC MOCK DATA (Eco Points) ---
-const MOCK_ECO_MISSIONS = [
+const FALLBACK_ECO_MISSIONS = [
   {
     id: "ms-1",
     title: "Setor 500 Kg Sabut Kelapa Kering",
@@ -48,7 +51,7 @@ const MOCK_ECO_MISSIONS = [
   },
   {
     id: "ms-3",
-    title: "Gunakan Kompos Kelapa di Kebun Blok A",
+    title: "Pemanfaatan Kompos Kelapa di Kebun",
     reward: "+100 Pts",
     progress: 60,
     isCompleted: false,
@@ -68,6 +71,8 @@ const iconMap: { [key: string]: React.ElementType } = {
   Utilities: Zap,
   "E-Wallet": Wallet,
   Pertanian: Leaf,
+  pertanian: Leaf,
+  digital: Zap,
   default: Gift,
 };
 
@@ -76,11 +81,16 @@ export default function EcoPointsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [selectedReward, setSelectedReward] = useState<RewardCatalog | null>(
-    null,
-  );
+  const [selectedReward, setSelectedReward] = useState<RewardCatalog | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [redeemSuccess, setRedeemSuccess] = useState(false);
+
+  // Setor Limbah Modal State
+  const [openSetorModal, setOpenSetorModal] = useState(false);
+  const [wasteType, setWasteType] = useState("SABUT");
+  const [wasteWeight, setWasteWeight] = useState("");
+  const [wasteMethod, setWasteMethod] = useState("PICKUP");
+  const [isSubmittingWaste, setIsSubmittingWaste] = useState(false);
 
   const fetchEcoPointsData = useCallback(async () => {
     setIsLoading(true);
@@ -114,15 +124,54 @@ export default function EcoPointsPage() {
         throw new Error(errData.error || "Gagal menukar poin");
       }
       setRedeemSuccess(true);
+      toast.success("Penukaran poin berhasil!");
       await fetchEcoPointsData(); // Refresh data
       setTimeout(() => {
         setSelectedReward(null);
         setRedeemSuccess(false);
       }, 1500);
     } catch (err: any) {
-      alert(err.message);
+      toast.error(err.message);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleSetorLimbah = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const weight = parseFloat(wasteWeight);
+    if (isNaN(weight) || weight <= 0) {
+      toast.error("Masukkan berat limbah yang valid (lebih dari 0 Kg).");
+      return;
+    }
+
+    try {
+      setIsSubmittingWaste(true);
+      const res = await fetch("/api/app/eco-points/setor-limbah", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          komoditasType: wasteType,
+          beratKg: weight,
+          pengirimanMethod: wasteMethod,
+        }),
+      });
+
+      const resData = await res.json();
+      if (!res.ok) {
+        throw new Error(resData.error || "Gagal menyetor limbah.");
+      }
+
+      toast.success(
+        `Berhasil menyetor ${weight} Kg ${wasteType}! +${resData.pointsEarned} EcoPoints diperoleh.`
+      );
+      setOpenSetorModal(false);
+      setWasteWeight("");
+      await fetchEcoPointsData();
+    } catch (err: any) {
+      toast.error(err.message || "Terjadi kesalahan saat menyetor limbah.");
+    } finally {
+      setIsSubmittingWaste(false);
     }
   };
 
@@ -144,14 +193,16 @@ export default function EcoPointsPage() {
 
   const nextTierNeeded = Math.max(
     0,
-    (data.summary?.nextTierPoints || 1500) - (data.balance || 1250),
+    (data.summary?.nextTierPoints || 1500) - (data.balance || 0),
   );
   const progressPercent = Math.min(
     100,
     Math.round(
-      ((data.balance || 1250) / (data.summary?.nextTierPoints || 1500)) * 100,
+      ((data.balance || 0) / (data.summary?.nextTierPoints || 1500)) * 100,
     ),
   );
+
+  const missions = data.activeMissions || FALLBACK_ECO_MISSIONS;
 
   return (
     <div
@@ -173,17 +224,17 @@ export default function EcoPointsPage() {
         </div>
 
         <div className="flex items-center gap-3">
-          <Link
+          <Button
             data-tour="setor-limbah"
-            href="/app/pengiriman"
+            onClick={() => setOpenSetorModal(true)}
             className="bg-[#606C38] hover:bg-[#283618] text-white font-bold text-xs sm:text-sm rounded-xl h-11 px-4 shadow-none flex items-center gap-2 transition-colors shrink-0"
           >
             <PlusCircle className="h-4 w-4" /> Setor Limbah Kelapa
-          </Link>
+          </Button>
         </div>
       </div>
 
-      {/* TOP METRIC CARDS REDESIGN */}
+      {/* TOP METRIC CARDS */}
       <div
         data-tour="statistik-Eco"
         className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4"
@@ -199,7 +250,7 @@ export default function EcoPointsPage() {
                 TOTAL ECOPOINT SAYA
               </span>
               <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">
-                {(data.balance || 1250).toLocaleString("id-ID")} Poin
+                {(data.balance || 0).toLocaleString("id-ID")} Poin
               </h2>
             </div>
             <div className="h-10 w-10 rounded-xl bg-[#606C38]/10 text-[#606C38] flex items-center justify-center shrink-0">
@@ -212,19 +263,20 @@ export default function EcoPointsPage() {
               variant="outline"
               className="bg-[#606C38]/10 text-[#606C38] border-[#606C38]/20 font-bold text-xs shadow-none"
             >
-              Level: {data.summary?.tier || "Petani Hijau"}
+              Level: {data.summary?.tier || "Petani Pemula"}
             </Badge>
             <span className="text-[11px] font-bold text-gray-500">
-              {(data.balance || 1250).toLocaleString("id-ID")} /{" "}
-              {(data.summary?.nextTierPoints || 1500).toLocaleString("id-ID")}
+              {(data.balance || 0).toLocaleString("id-ID")} /{" "}
+              {(data.summary?.nextTierPoints || 500).toLocaleString("id-ID")}
             </span>
           </div>
 
           <div className="space-y-1">
             <Progress value={progressPercent} className="h-2 bg-gray-100" />
             <p className="text-[10px] font-semibold text-gray-400 text-right">
-              {nextTierNeeded.toLocaleString("id-ID")} poin lagi ke level
-              berikutnya
+              {nextTierNeeded > 0
+                ? `${nextTierNeeded.toLocaleString("id-ID")} poin lagi ke level berikutnya`
+                : "Level Maksimal Tercapai!"}
             </p>
           </div>
           <Link
@@ -253,7 +305,7 @@ export default function EcoPointsPage() {
           </div>
           <div>
             <h3 className="text-2xl font-extrabold text-gray-900">
-              {data.summary?.totalCo2ReducedKg || 420} Kg CO₂
+              {data.summary?.totalCo2ReducedKg || 0} Kg CO₂
             </h3>
             <p className="text-[11px] font-medium text-[#606C38] mt-1">
               Net-Zero Carbon Contribution
@@ -276,10 +328,10 @@ export default function EcoPointsPage() {
           </div>
           <div>
             <h3 className="text-2xl font-extrabold text-gray-900">
-              {data.summary?.wasteExchangedKg || 1840} Kg
+              {(data.summary?.wasteExchangedKg || 0).toLocaleString("id-ID")} Kg
             </h3>
             <p className="text-[11px] font-medium text-gray-500 mt-1">
-              Sabut & Tempurung Kelapa
+              Sabut, Tempurung & Air Kelapa
             </p>
           </div>
         </Card>
@@ -299,10 +351,10 @@ export default function EcoPointsPage() {
           </div>
           <div>
             <h3 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">
-              #124
+              #{data.summary?.rank || 124}
             </h3>
             <p className="text-[11px] font-medium text-gray-500 mt-1">
-              dari 10.000 Petani
+              dari {(data.summary?.totalFarmersCount || 10000).toLocaleString("id-ID")} Petani
             </p>
           </div>
         </Card>
@@ -323,10 +375,16 @@ export default function EcoPointsPage() {
                   Katalog Hadiah Eco Points (Exchange)
                 </CardTitle>
               </div>
+              <Link
+                href="/app/EcoPointTrade"
+                className="text-xs font-bold text-[#606C38] hover:underline"
+              >
+                Lihat Semua
+              </Link>
             </CardHeader>
             <CardContent className="pt-4 space-y-3">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                {data.rewards?.map((rw: RewardCatalog) => {
+                {data.rewards?.slice(0, 6).map((rw: RewardCatalog) => {
                   const IconComp = iconMap[rw.category] || iconMap.default;
                   return (
                     <div
@@ -337,7 +395,7 @@ export default function EcoPointsPage() {
                         <div className="h-8 w-8 rounded-lg bg-[#606C38]/10 text-[#606C38] flex items-center justify-center">
                           <IconComp className="h-4 w-4" />
                         </div>
-                        <h4 className="text-xs font-bold text-gray-900">
+                        <h4 className="text-xs font-bold text-gray-900 line-clamp-1">
                           {rw.title}
                         </h4>
                         <span className="text-[10px] font-bold text-gray-400 uppercase">
@@ -371,13 +429,19 @@ export default function EcoPointsPage() {
             data-tour="misi-eco"
             className="bg-white border border-gray-200 rounded-2xl shadow-none"
           >
-            <CardHeader className="pb-3 border-b border-gray-100">
+            <CardHeader className="pb-3 border-b border-gray-100 flex flex-row items-center justify-between space-y-0">
               <CardTitle className="text-base font-bold text-gray-900">
                 Misi Berkelanjutan (Active Missions)
               </CardTitle>
+              <Link
+                href="/app/EcoPointTrade/Mission"
+                className="text-xs font-bold text-[#606C38] hover:underline"
+              >
+                Lihat Semua Misi
+              </Link>
             </CardHeader>
             <CardContent className="pt-4 space-y-3">
-              {MOCK_ECO_MISSIONS.map((ms) => (
+              {missions.map((ms: any) => (
                 <div
                   key={ms.id}
                   className="p-3.5 rounded-xl border border-gray-200 bg-white space-y-2"
@@ -409,31 +473,133 @@ export default function EcoPointsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-4 space-y-3">
-              {data.history?.map((log: EcoPointTx) => (
-                <div
-                  key={log.id}
-                  className="p-3 rounded-xl border border-gray-100 bg-gray-50/50 space-y-1"
-                >
-                  <div className="flex items-center justify-between">
-                    <h5 className="text-xs font-bold text-gray-900">
-                      {log.activity}
-                    </h5>
-                    <span
-                      className={`text-xs font-extrabold ${log.type === "EARN" ? "text-[#606C38]" : "text-amber-600"}`}
-                    >
-                      {log.points > 0 ? "+" : ""}
-                      {log.points} Pts
+              {data.history && data.history.length > 0 ? (
+                data.history.map((log: EcoPointTx) => (
+                  <div
+                    key={log.id}
+                    className="p-3 rounded-xl border border-gray-100 bg-gray-50/50 space-y-1"
+                  >
+                    <div className="flex items-center justify-between">
+                      <h5 className="text-xs font-bold text-gray-900">
+                        {log.activity}
+                      </h5>
+                      <span
+                        className={`text-xs font-extrabold ${log.type === "EARN" ? "text-[#606C38]" : "text-amber-600"}`}
+                      >
+                        {log.points > 0 ? "+" : ""}
+                        {log.points} Pts
+                      </span>
+                    </div>
+                    <span className="text-[10px] text-gray-400 font-medium">
+                      {formatDate(log.createdAt)}
                     </span>
                   </div>
-                  <span className="text-[10px] text-gray-400 font-medium">
-                    {formatDate(log.createdAt)}
-                  </span>
+                ))
+              ) : (
+                <div className="text-center py-6 text-xs text-gray-400">
+                  Belum ada riwayat transaksi poin.
                 </div>
-              ))}
+              )}
             </CardContent>
           </Card>
         </div>
       </div>
+
+      {/* Setor Limbah Modal */}
+      <Dialog open={openSetorModal} onOpenChange={setOpenSetorModal}>
+        <DialogContent className="sm:max-w-md bg-white border border-gray-200 rounded-2xl shadow-none font-['Quicksand',sans-serif]">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold text-gray-900 flex items-center gap-2">
+              <Recycle className="w-5 h-5 text-[#606C38]" /> Setor Limbah & Dapatkan Poin
+            </DialogTitle>
+            <DialogDescription className="text-xs font-medium text-gray-500">
+              Setorkan produk sampingan kelapa (sabut, tempurung, atau air kelapa) untuk menambah saldo EcoPoints dan mendukung ekonomi sirkular.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleSetorLimbah} className="space-y-4 pt-2">
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1">
+                Jenis Limbah / Komoditas Sampingan
+              </label>
+              <select
+                value={wasteType}
+                onChange={(e) => setWasteType(e.target.value)}
+                className="w-full h-10 px-3 rounded-xl border border-gray-300 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#606C38]"
+              >
+                <option value="SABUT">Sabut Kelapa Kering</option>
+                <option value="TEMPURUNG">Batok / Tempurung Kelapa</option>
+                <option value="AIR_KELAPA">Air Kelapa Segar</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1">
+                Perkiraan Berat / Volume (Kg)
+              </label>
+              <input
+                type="number"
+                step="any"
+                required
+                min="1"
+                value={wasteWeight}
+                onChange={(e) => setWasteWeight(e.target.value)}
+                placeholder="Contoh: 50"
+                className="w-full h-10 px-3 rounded-xl border border-gray-300 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#606C38]"
+              />
+              <p className="text-[10px] text-gray-400 mt-1">
+                *Estimasi perolehan: 1 Kg limbah = 1 EcoPoint (Min. 10 Pts)
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1">
+                Metode Penyerahan
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setWasteMethod("PICKUP")}
+                  className={`h-10 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${wasteMethod === "PICKUP" ? "border-[#606C38] bg-[#606C38]/10 text-[#606C38]" : "border-gray-200 text-gray-600 hover:bg-gray-50"}`}
+                >
+                  <Truck className="w-3.5 h-3.5" /> Jemput di Kebun
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setWasteMethod("SELF_DELIVERY")}
+                  className={`h-10 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${wasteMethod === "SELF_DELIVERY" ? "border-[#606C38] bg-[#606C38]/10 text-[#606C38]" : "border-gray-200 text-gray-600 hover:bg-gray-50"}`}
+                >
+                  <PlusCircle className="w-3.5 h-3.5" /> Antar ke Koperasi
+                </button>
+              </div>
+            </div>
+
+            <DialogFooter className="pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setOpenSetorModal(false)}
+                className="h-10 rounded-xl border-gray-200 text-xs font-bold"
+              >
+                Batal
+              </Button>
+              <Button
+                type="submit"
+                disabled={isSubmittingWaste}
+                className="h-10 rounded-xl bg-[#606C38] hover:bg-[#283618] text-white text-xs font-bold shadow-none flex items-center justify-center gap-1.5"
+              >
+                {isSubmittingWaste ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" /> Memproses...
+                  </>
+                ) : (
+                  "Konfirmasi Setor Limbah"
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Redeem Confirmation Dialog */}
       <Dialog
@@ -451,8 +617,8 @@ export default function EcoPointsPage() {
             </DialogDescription>
           </DialogHeader>
           {redeemSuccess ? (
-            <div className="py-4 text-center text-xs font-bold text-[#606C38]">
-              Penukaran Berhasil! Voucher/Token telah dikirim ke PWA Wallet.
+            <div className="py-4 text-center text-xs font-bold text-[#606C38] flex items-center justify-center gap-1.5">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600" /> Penukaran Berhasil! Voucher telah dibuat.
             </div>
           ) : (
             <DialogFooter className="pt-2">

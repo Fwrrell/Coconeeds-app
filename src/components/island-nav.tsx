@@ -13,20 +13,47 @@ import {
 
 // 5 items strict mobile island nav buat petani
 const leftNav = [
-  { name: "Beranda", href: "/app", icon: House },
-  { name: "Lahan", href: "/app/lahan", icon: TreePalm },
+  {
+    name: "Beranda",
+    href: "/app",
+    icon: House,
+    tour: "menu-dashboard-mobile",
+  },
+  {
+    name: "Lahan",
+    href: "/app/lahan",
+    icon: TreePalm,
+    tour: "menu-lahan-mobile",
+  },
 ];
 
 const rightNav = [
-  { name: "Kirim", href: "/app/pengiriman", icon: Truck },
-  { name: "Profil", href: "/app/profil", icon: User },
+  {
+    name: "Kirim",
+    href: "/app/pengiriman",
+    icon: Truck,
+    tour: "menu-pengiriman-mobile",
+  },
+  {
+    name: "Profil",
+    href: "/app/profil",
+    icon: User,
+    tour: "menu-profil-mobile",
+  },
 ];
 
-export const IslandNav = ({ onOpenHarvestModal }: { onOpenHarvestModal?: () => void }) => {
+export const IslandNav = ({
+  onOpenHarvestModal,
+}: {
+  onOpenHarvestModal?: () => void;
+}) => {
   const pathname = usePathname();
 
   return (
-    <nav className="md:hidden fixed bottom-3 left-1/2 -translate-x-1/2 w-[92%] max-w-md bg-white/95 backdrop-blur-md rounded-2xl border border-gray-200 z-50 py-2 px-3 font-['Quicksand',sans-serif]">
+    <nav
+      data-tour="island-nav"
+      className="md:hidden fixed bottom-3 left-1/2 -translate-x-1/2 w-[92%] max-w-md bg-white/95 backdrop-blur-md rounded-2xl border border-gray-200 z-50 py-2 px-3 font-['Quicksand',sans-serif]"
+    >
       <div className="flex items-center justify-between relative w-full">
         {/* left nav items */}
         {leftNav.map((nav) => {
@@ -36,6 +63,7 @@ export const IslandNav = ({ onOpenHarvestModal }: { onOpenHarvestModal?: () => v
             <Link
               key={nav.name}
               href={nav.href}
+              data-tour={nav.tour}
               className="flex flex-col items-center gap-0.5 min-w-[50px]"
             >
               <Icon
@@ -53,6 +81,7 @@ export const IslandNav = ({ onOpenHarvestModal }: { onOpenHarvestModal?: () => v
         {/* center prominent action button buat trigger modal catat panen */}
         <div className="flex flex-col items-center justify-center -mt-5">
           <button
+            data-tour="hasil-panen-mobile"
             onClick={() => onOpenHarvestModal && onOpenHarvestModal()}
             className="w-13 h-13 rounded-full flex items-center justify-center border-4 border-white bg-[#606C38] active:scale-95 transition-transform shrink-0"
             title="Catat Hasil Panen"
@@ -72,6 +101,7 @@ export const IslandNav = ({ onOpenHarvestModal }: { onOpenHarvestModal?: () => v
             <Link
               key={nav.name}
               href={nav.href}
+              data-tour={nav.tour}
               className="flex flex-col items-center gap-0.5 min-w-[50px]"
             >
               <Icon

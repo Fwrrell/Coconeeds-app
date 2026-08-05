@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { shipmentRequestSchema } from "@/lib/validations/pengiriman.schema";
-import { PanenStatus } from "@prisma/client";
+import { PanenStatus, EcoPointTxType } from "@prisma/client";
 import { randomBytes } from "crypto";
 
 // Function to generate a random 6-digit PIN
@@ -101,6 +101,17 @@ export async function POST(req: Request) {
         data: { jumlah: { decrement: beratKg } },
       });
 
+      // Find kopdes name if kopdesId exists
+      let kopdesName = "Koperasi Desa";
+      if (kopdesId) {
+        const kopdes = await tx.kopdes.findUnique({
+          where: { id: kopdesId },
+        });
+        if (kopdes?.name) {
+          kopdesName = kopdes.name;
+        }
+      }
+
       // 2. create mutation log
       await tx.inventoryMutation.create({
         data: {
@@ -110,7 +121,7 @@ export async function POST(req: Request) {
           jumlah: beratKg,
           satuan: stock.satuan,
           alasan: "PENJUALAN",
-          keterangan: `Pengiriman ke ${kopdesId}`,
+          keterangan: `Pengiriman ${komoditasType} ke ${kopdesName}`,
         },
       });
 
@@ -133,6 +144,28 @@ export async function POST(req: Request) {
           handoverPin: generatePin(),
         },
       });
+      // 4. Award Eco-Points for shipment participation & byproduct recycling
+      const isWaste = ["SABUT", "TEMPURUNG", "AIR_KELAPA"].includes(
+        komoditasType.toUpperCase(),
+      );
+      const ecoBonus = isWaste ? Math.max(10, Math.round(beratKg * 1)) : 25;
+
+      await tx.user.update({
+        where: { id: session.user.id },
+        data: {
+          ecoPoints: { increment: ecoBonus },
+        },
+      });
+
+      await tx.ecoPointTx.create({
+        data: {
+          petaniId: session.user.id,
+          type: EcoPointTxType.EARN,
+          points: ecoBonus,
+          activity: `Pengiriman ${komoditasType} (${beratKg} Kg) ke Koperasi`,
+        },
+      });
+
       return newShipment;
     });
 

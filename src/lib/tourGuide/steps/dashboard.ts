@@ -1,4 +1,5 @@
 import { DriveStep } from "driver.js";
+import { getNavSelector } from "../tourController";
 
 export const getDashboardSteps = (onGoToLahan?: () => void): DriveStep[] => [
   {
@@ -10,7 +11,7 @@ export const getDashboardSteps = (onGoToLahan?: () => void): DriveStep[] => [
     },
   },
   {
-    element: '[data-tour="navbar"]',
+    element: getNavSelector('[data-tour="navbar"]', '[data-tour="island-nav"]'),
     popover: {
       title: "Menu Navigasi",
       description:
@@ -18,7 +19,10 @@ export const getDashboardSteps = (onGoToLahan?: () => void): DriveStep[] => [
     },
   },
   {
-    element: '[data-tour="menu-dashboard"]',
+    element: getNavSelector(
+      '[data-tour="menu-dashboard"]',
+      '[data-tour="menu-dashboard-mobile"]',
+    ),
     popover: {
       title: "Halaman Dashboard",
       description:
@@ -58,7 +62,10 @@ export const getDashboardSteps = (onGoToLahan?: () => void): DriveStep[] => [
     },
   },
   {
-    element: '[data-tour="menu-lahan"]',
+    element: getNavSelector(
+      '[data-tour="menu-lahan"]',
+      '[data-tour="menu-lahan-mobile"]',
+    ),
     popover: {
       title: "Lahan Kebun",
       description:

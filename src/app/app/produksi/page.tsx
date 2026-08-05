@@ -62,6 +62,26 @@ const formatDate = (dateString: string | Date | null | undefined) => {
   });
 };
 
+const formatKeterangan = (item: any) => {
+  if (!item) return "-";
+  const ket = item.keterangan || "";
+  const uuidPattern = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
+
+  if (uuidPattern.test(ket)) {
+    return `Pengiriman ${item.komoditas || "komoditas"} ke Koperasi Desa`;
+  }
+  if (ket.includes("KONSUMSI_PRIBADI")) {
+    return `Konsumsi pribadi ${item.komoditas || ""}`;
+  }
+  if (ket.includes("RUSAK_SUSUT")) {
+    return `Penyusutan / kerusakan stok ${item.komoditas || ""}`;
+  }
+  if (!ket || ket === "PENJUALAN" || ket === "Pengurangan stok untuk PENJUALAN") {
+    return `Pengiriman ${item.komoditas || ""} ke Koperasi Desa`;
+  }
+  return ket;
+};
+
 export default function GudangInventoriPage() {
   const [stocks, setStocks] = useState<FarmerInventory[]>([]);
   const [mutations, setMutations] = useState<InventoryMutation[]>([]);
@@ -484,7 +504,7 @@ export default function GudangInventoriPage() {
                         {item.jumlah} {item.satuan}
                       </TableCell>
                       <TableCell className="text-gray-500 font-medium">
-                        {item.keterangan}
+                        {formatKeterangan(item)}
                       </TableCell>
                     </TableRow>
                   ))
