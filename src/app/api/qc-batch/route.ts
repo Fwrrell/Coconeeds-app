@@ -73,13 +73,32 @@ export async function POST(req: Request) {
         0,
       );
 
-      // bikin batch baru pake derived kopdesId
+      // auto link wtb ke batch
+      const candidateWtb = await tx.wtbListing.findFirst({
+        where: {
+          status: { in: ["OPEN", "DEAL"] },
+          negosiasi: {
+            some: {
+              kopdesId: derivedKopdesId,
+              status: "ACCEPTED",
+            },
+          },
+          komoditas: {
+            contains: type,
+            mode: "insensitive",
+          },
+        },
+        orderBy: { createdAt: "desc" },
+      });
+
+      // bikin batch baru pake derived kopdesId & auto link candidateWtb
       const newBatch = await tx.batch.create({
         data: {
           type,
           totalWeight,
           status: PanenStatus.IN_WAREHOUSE,
           kopdesId: derivedKopdesId,
+          wtbListingId: candidateWtb ? candidateWtb.id : undefined,
         },
       });
 

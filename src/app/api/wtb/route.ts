@@ -1,14 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import { z } from "zod";
 import { WtbStatus } from "@prisma/client";
-
 import { wtbSchema } from "@/lib/validations/wtb.schema";
 
+// buat wtb listing baru dgn spesifikasi dan deadline
 export async function POST(req: Request) {
   try {
-    // auth check
     const session = await auth();
     if (!session || !session.user) {
       return NextResponse.json(
@@ -19,7 +17,6 @@ export async function POST(req: Request) {
 
     const body = await req.json();
 
-    // zod validation
     const parsed = wtbSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(
@@ -28,9 +25,8 @@ export async function POST(req: Request) {
       );
     }
 
-    const { perusahaanId, komoditas, targetWeight, maxPrice, destination } = parsed.data;
+    const { perusahaanId, komoditas, spesifikasi, targetWeight, maxPrice, destination, deadline } = parsed.data;
 
-    // role & authorization check: perusahaan hanya boleh buat data untuk diri sendiri, admin bebas
     if (session.user.role === "PERUSAHAAN" && session.user.id !== perusahaanId) {
       return NextResponse.json(
         { error: "Anda tidak memiliki akses untuk membuat WTB atas nama perusahaan lain." },
@@ -45,13 +41,17 @@ export async function POST(req: Request) {
       );
     }
 
+    const deadlineDate = deadline ? new Date(deadline) : null;
+
     const newWtb = await prisma.wtbListing.create({
       data: {
         perusahaanId,
         komoditas,
+        spesifikasi,
         targetWeight,
         maxPrice,
         destination,
+        deadline: deadlineDate,
       },
     });
 
@@ -68,6 +68,7 @@ export async function POST(req: Request) {
   }
 }
 
+// fetch data wtb asli dari db dgn relasi & ngitung total pasokan dari batch
 export async function GET(request: Request) {
   try {
     const session = await auth();
@@ -77,30 +78,60 @@ export async function GET(request: Request) {
 
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status") as WtbStatus | null;
+    const perusahaanIdParam = searchParams.get("perusahaanId");
 
-    const whereClause: { status?: WtbStatus } = {};
+    const whereClause: any = {};
     if (status) {
       whereClause.status = status;
-    } else {
-      // Jika tidak ada param status, ambil semua kecuali COMPLETED
-      whereClause.status = { not: WtbStatus.COMPLETED } as any;
+    }
+
+    // cegah bocor data: klo role PERUSAHAAN paksa filter ke session.user.id
+    if (session.user.role === "PERUSAHAAN") {
+      whereClause.perusahaanId = session.user.id;
+    } else if (perusahaanIdParam) {
+      whereClause.perusahaanId = perusahaanIdParam;
     }
 
     const wtbList = await prisma.wtbListing.findMany({
       where: whereClause,
       include: {
         perusahaan: {
-          select: { name: true },
+          select: { name: true, image: true, companyAddress: true, penanggungJawab: true },
+        },
+        negosiasi: {
+          include: {
+            kopdes: { select: { id: true, name: true, region: true } },
+          },
+          orderBy: { createdAt: "desc" },
+        },
+        batches: {
+          include: {
+            kopdes: { select: { id: true, name: true } },
+            pengirimanKapal: true,
+          },
         },
         _count: {
-          select: { negosiasi: true },
+          select: { negosiasi: true, batches: true },
         },
       },
       orderBy: { createdAt: "desc" },
     });
 
+    // kalkulasi collectedWeight & kopdesJoined dr batch
+    const mappedList = wtbList.map((wtb) => {
+      const collectedWeight = wtb.batches.reduce((sum, b) => sum + (b.totalWeight || 0), 0);
+      const kopdesSet = new Set(wtb.batches.map((b) => b.kopdesId).filter(Boolean));
+      const kopdesJoined = kopdesSet.size;
+
+      return {
+        ...wtb,
+        collectedWeight,
+        kopdesJoined,
+      };
+    });
+
     return NextResponse.json(
-      { message: "Data WTB berhasil diambil.", data: wtbList },
+      { message: "Data WTB berhasil diambil.", data: mappedList },
       { status: 200 },
     );
   } catch (err) {
