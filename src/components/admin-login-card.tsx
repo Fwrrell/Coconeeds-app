@@ -32,7 +32,8 @@ export function AdminLoginCard() {
             (session.user.approvalStatus === "APPROVED" || (session.user as any).status === "APPROVED");
 
           if (isApprovedAdmin) {
-            router.replace("/admin");
+            // pake window.location biar full page nav, bukan rsc prefetch yg bisa kena race condition di vercel edge
+            window.location.href = "/admin";
             return;
           }
 
@@ -41,7 +42,7 @@ export function AdminLoginCard() {
           if (settingsRes.ok) {
             const settings = await settingsRes.json();
             if (settings?.data?.juriAccess) {
-              router.replace("/admin");
+              window.location.href = "/admin";
               return;
             }
           }
@@ -64,9 +65,10 @@ export function AdminLoginCard() {
     setIsSigningIn(true);
     setError(null);
 
+    // callback langsung ke /admin biar ga redirect loop di vercel
     const result = await signIn("google", {
       redirect: false,
-      callbackUrl: "/admin/login",
+      callbackUrl: "/admin",
     });
 
     if (result?.error) {

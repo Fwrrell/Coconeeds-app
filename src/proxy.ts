@@ -1,17 +1,79 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 
-// decode jwt pake gettoken aja biar edge runtime ga bengkak muat prisma
 const authRoutes = ["/login", "/register"];
 const DEFAULT_REDIRECT = "/";
+
+// Helper function to decode JWT in Edge Middleware for NextAuth v5 / Auth.js
+// correctly handling production secure cookies (__Secure-authjs.session-token, __Secure-next-auth.session-token)
+async function getAuthToken(request: NextRequest) {
+  const secret = process.env.AUTH_SECRET;
+  if (!secret) return null;
+
+  // 1. Try standard auto-detection
+  let token = await getToken({ req: request, secret });
+  if (token) return token;
+
+  const isSecure =
+    process.env.NODE_ENV === "production" ||
+    request.nextUrl.protocol === "https:" ||
+    request.headers.get("x-forwarded-proto") === "https";
+
+  // 2. Explicit check for __Secure-authjs.session-token (NextAuth v5 default on HTTPS)
+  if (request.cookies.has("__Secure-authjs.session-token") || isSecure) {
+    token = await getToken({
+      req: request,
+      secret,
+      secureCookie: true,
+      cookieName: "__Secure-authjs.session-token",
+      salt: "__Secure-authjs.session-token",
+    });
+    if (token) return token;
+  }
+
+  // 3. Explicit check for authjs.session-token (NextAuth v5 default on HTTP)
+  if (request.cookies.has("authjs.session-token")) {
+    token = await getToken({
+      req: request,
+      secret,
+      secureCookie: false,
+      cookieName: "authjs.session-token",
+      salt: "authjs.session-token",
+    });
+    if (token) return token;
+  }
+
+  // 4. Explicit check for __Secure-next-auth.session-token (Legacy NextAuth default on HTTPS)
+  if (request.cookies.has("__Secure-next-auth.session-token")) {
+    token = await getToken({
+      req: request,
+      secret,
+      secureCookie: true,
+      cookieName: "__Secure-next-auth.session-token",
+      salt: "__Secure-next-auth.session-token",
+    });
+    if (token) return token;
+  }
+
+  // 5. Explicit check for next-auth.session-token (Legacy NextAuth default on HTTP)
+  if (request.cookies.has("next-auth.session-token")) {
+    token = await getToken({
+      req: request,
+      secret,
+      secureCookie: false,
+      cookieName: "next-auth.session-token",
+      salt: "next-auth.session-token",
+    });
+    if (token) return token;
+  }
+
+  return null;
+}
 
 export async function proxy(request: NextRequest) {
   const { nextUrl } = request;
 
-  const token = await getToken({
-    req: request,
-    secret: process.env.AUTH_SECRET,
-  });
+  const token = await getAuthToken(request);
 
   const isLoggedIn = !!token;
   const userRole = token?.role;
@@ -99,3 +161,4 @@ export default proxy;
 export const config = {
   matcher: ["/((?!api|_next/static|_next/image|favicon.ico|.*\\.png$).*)"],
 };
+
