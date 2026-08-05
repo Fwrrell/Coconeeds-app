@@ -36,14 +36,34 @@ import {
 } from "@/components/ui/dialog";
 import Image from "next/image";
 import { getAvatarInitials } from "@/lib/utils";
-
+import { registerDialog } from "@/lib/tourGuide/tourController";
 // nav item list buat petani kebun
 const FARMER_NAV_ITEMS = [
-  { name: "Dashboard", href: "/app", icon: LayoutDashboard },
-  { name: "Lahan Kebun", href: "/app/lahan", icon: Sprout },
-  { name: "Produksi & Stok", href: "/app/produksi", icon: Warehouse },
-  { name: "Pengiriman", href: "/app/pengiriman", icon: Truck },
-  { name: "Eco-Points", href: "/app/eco-points", icon: Recycle },
+  {
+    name: "Dashboard",
+    href: "/app",
+    icon: LayoutDashboard,
+    tour: "menu-dashboard",
+  },
+  { name: "Lahan Kebun", href: "/app/lahan", icon: Sprout, tour: "menu-lahan" },
+  {
+    name: "Produksi & Stok",
+    href: "/app/produksi",
+    icon: Warehouse,
+    tour: "menu-produksi",
+  },
+  {
+    name: "Pengiriman",
+    href: "/app/pengiriman",
+    icon: Truck,
+    tour: "menu-pengiriman",
+  },
+  {
+    name: "Eco-Points",
+    href: "/app/eco-points",
+    icon: Recycle,
+    tour: "menu-Ecopoint",
+  },
 ];
 
 export function FarmerSidebar({
@@ -73,36 +93,7 @@ export function FarmerSidebar({
   const [jenisProduk, setJenisProduk] = useState("Kelapa Utuh");
   const [jumlah, setJumlah] = useState(500);
   const [satuan, setSatuan] = useState("Kg");
-  const [lahanSelected, setLahanSelected] = useState<string>("");
-
-  // real lahan data state
-  const [lahanList, setLahanList] = useState<any[]>([]);
-  const [isLoadingLahan, setIsLoadingLahan] = useState(false);
-
-  // fetch data lahan user dlu sblm render modal
-  const fetchLahanList = useCallback(async () => {
-    setIsLoadingLahan(true);
-    try {
-      const res = await fetch("/api/app/lahan");
-      if (res.ok) {
-        const data = await res.json();
-        setLahanList(data);
-        if (data && data.length > 0) {
-          setLahanSelected(data[0].id);
-        }
-      }
-    } catch (err) {
-      console.error("Gagal load lahan data:", err);
-    } finally {
-      setIsLoadingLahan(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (isModalOpen) {
-      fetchLahanList();
-    }
-  }, [isModalOpen, fetchLahanList]);
+  const [lahanSelected, setLahanSelected] = useState("Kebun Blok A Utara");
 
   // filter options produk berdasarkan kategori komoditas
   const getJenisOptions = () => {
@@ -167,6 +158,10 @@ export function FarmerSidebar({
     }
   };
 
+  const handleHarvestSubmitWithTour = (e: React.FormEvent) => {
+    handleHarvestSubmit(e);
+  };
+
   return (
     <>
       {/* DESKTOP SIDEBAR NAVIGATION */}
@@ -192,6 +187,7 @@ export function FarmerSidebar({
         {/* Global CTA Button: + Catat Hasil Panen */}
         <div className="p-4 border-b border-gray-100">
           <Button
+            data-tour="hasil-panen"
             onClick={() => setModalOpen(true)}
             className="w-full bg-[#606C38] hover:bg-[#283618] text-white font-bold text-xs h-11 rounded-xl shadow-none flex items-center justify-center gap-2 transition-colors"
           >
@@ -200,7 +196,10 @@ export function FarmerSidebar({
         </div>
 
         {/* Navigation Menu Links */}
-        <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
+        <nav
+          data-tour="navbar"
+          className="flex-1 p-3 space-y-1 overflow-y-auto"
+        >
           {FARMER_NAV_ITEMS.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href;
@@ -209,6 +208,7 @@ export function FarmerSidebar({
               <Link
                 key={item.href}
                 href={item.href}
+                data-tour={item.tour}
                 className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
                   isActive
                     ? "bg-[#606C38]/10 text-[#606C38] border border-[#606C38]/20"
@@ -274,16 +274,11 @@ export function FarmerSidebar({
             </div>
           ) : (
             <form onSubmit={handleHarvestSubmit} className="space-y-4 py-2">
-              {/* Field 1: Pilih Lahan (Wired to Real API Data) */}
+              {/* Field 1: Pilih Lahan */}
               <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs font-bold text-gray-700">
-                    Pilih Lahan Kebun
-                  </Label>
-                  {isLoadingLahan && (
-                    <Loader2 className="h-3 w-3 animate-spin text-[#606C38]" />
-                  )}
-                </div>
+                <Label className="text-xs font-bold text-gray-700">
+                  Pilih Lahan Kebun
+                </Label>
                 <Select
                   value={lahanSelected}
                   onValueChange={(val) => val && setLahanSelected(val)}
@@ -321,7 +316,7 @@ export function FarmerSidebar({
               </div>
 
               {/* Field 2: Kategori Komoditas */}
-              <div className="space-y-1.5">
+              <div className="space-y-1.5" data-tour="form-kategori-produk">
                 <Label className="text-xs font-bold text-gray-700">
                   Kategori Komoditas
                 </Label>
@@ -353,7 +348,7 @@ export function FarmerSidebar({
               </div>
 
               {/* Field 3: Jenis Produk */}
-              <div className="space-y-1.5">
+              <div className="space-y-1.5" data-tour="form-jenis-produk">
                 <Label className="text-xs font-bold text-gray-700">
                   Jenis Produk
                 </Label>
@@ -376,7 +371,10 @@ export function FarmerSidebar({
 
               {/* Field 4: Jumlah & Satuan */}
               <div className="grid grid-cols-3 gap-2">
-                <div className="col-span-2 space-y-1.5">
+                <div
+                  className="col-span-2 space-y-1.5"
+                  data-tour="form-jumlah-produk"
+                >
                   <Label className="text-xs font-bold text-gray-700">
                     Jumlah Panen
                   </Label>
@@ -389,7 +387,7 @@ export function FarmerSidebar({
                     required
                   />
                 </div>
-                <div className="space-y-1.5">
+                <div className="space-y-1.5" data-tour="form-satuan-produk">
                   <Label className="text-xs font-bold text-gray-700">
                     Satuan
                   </Label>
@@ -411,6 +409,7 @@ export function FarmerSidebar({
               {/* Submit CTA */}
               <DialogFooter className="pt-2">
                 <Button
+                  data-tour="form-simpan-panen"
                   type="submit"
                   disabled={lahanList.length === 0}
                   className="w-full bg-[#606C38] hover:bg-[#283618] text-white text-xs font-bold h-11 rounded-xl shadow-none flex items-center justify-center gap-2"

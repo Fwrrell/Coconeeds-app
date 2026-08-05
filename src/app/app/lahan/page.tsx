@@ -31,6 +31,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import Image from "next/image";
+import { registerDialog } from "@/lib/tourGuide/tourController";
 type Lahan = any; // type inline smntara biar ga error di browser
 
 // --- HELPER UNTUK FORMAT TANGGAL ---
@@ -51,7 +52,24 @@ export default function LahanPage() {
   const [isOpenAdd, setIsOpenAdd] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [selectedLahan, setSelectedLahan] = useState<Lahan | null>(null);
-  
+  // untuk open dialog tutorial
+  const openTambahDialog = () => {
+    setSelectedLahan(null);
+    setIsOpenAdd(true);
+  };
+  const closeTambahDialog = () => {
+    setIsOpenAdd(false);
+  };
+  const openDetailDialog = () => {
+    if (lahanList.length === 0) return;
+
+    setSelectedLahan(lahanList[0]);
+  };
+  // const openEditDialog = () => {
+  //   if (lahanList.length === 0) return;
+
+  //   handleOpenEditDialog(lahanList[0]);
+  // };
   // Form state
   const [namaLahan, setNamaLahan] = useState("");
   const [luasLahan, setLuasLahan] = useState("");
@@ -59,7 +77,6 @@ export default function LahanPage() {
   const [lokasiLahan, setLokasiLahan] = useState("");
   const [deskripsiLahan, setDeskripsiLahan] = useState("");
   const [tanggalTanam, setTanggalTanam] = useState("");
-
 
   // fetch data lahan
   const fetchLahan = useCallback(async () => {
@@ -82,22 +99,42 @@ export default function LahanPage() {
   useEffect(() => {
     fetchLahan();
   }, [fetchLahan]);
+  //register dialog action ke tourcontroller
+  useEffect(() => {
+    registerDialog("tambah-lahan", openTambahDialog);
 
+    registerDialog("close-tambah-lahan", closeTambahDialog);
+
+    registerDialog("detail-lahan", openDetailDialog);
+
+    // registerDialog("edit-lahan", openEditDialog);
+  }, [lahanList]);
   // kalkulasi statistik dari data
   const lahanStats = useMemo(() => {
     const totalLuas = lahanList.reduce((sum, lahan) => sum + lahan.luasM2, 0);
-    const totalPohon = lahanList.reduce((sum, lahan) => sum + lahan.jumlahPohon, 0);
+    const totalPohon = lahanList.reduce(
+      (sum, lahan) => sum + lahan.jumlahPohon,
+      0,
+    );
     const totalLuasHa = (totalLuas / 10000).toFixed(1);
 
     // cari estimasi panen terdekat
     const upcomingHarvest = lahanList
-      .filter(l => l.waktuPanenEstimate)
-      .sort((a, b) => new Date(a.waktuPanenEstimate!).getTime() - new Date(b.waktuPanenEstimate!).getTime())[0];
-    
+      .filter((l) => l.waktuPanenEstimate)
+      .sort(
+        (a, b) =>
+          new Date(a.waktuPanenEstimate!).getTime() -
+          new Date(b.waktuPanenEstimate!).getTime(),
+      )[0];
+
     let harvestText = "N/A";
     if (upcomingHarvest && upcomingHarvest.waktuPanenEstimate) {
-        const diffDays = Math.ceil((new Date(upcomingHarvest.waktuPanenEstimate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
-        harvestText = `${diffDays} hari lagi`
+      const diffDays = Math.ceil(
+        (new Date(upcomingHarvest.waktuPanenEstimate).getTime() -
+          new Date().getTime()) /
+          (1000 * 60 * 60 * 24),
+      );
+      harvestText = `${diffDays} hari lagi`;
     }
 
     return [
@@ -116,11 +153,13 @@ export default function LahanPage() {
       {
         text: "Akan Panen",
         stat: harvestText,
-        subtitle: upcomingHarvest ? formatDate(upcomingHarvest.waktuPanenEstimate) : 'Belum ada estimasi',
+        subtitle: upcomingHarvest
+          ? formatDate(upcomingHarvest.waktuPanenEstimate)
+          : "Belum ada estimasi",
         iconSrc: "/icon/dataPanen.png",
         link: "/app/ai-insight",
       },
-       {
+      {
         text: "Lahan Terdaftar",
         stat: `${lahanList.length} Plot`,
         subtitle: "Lahan terverifikasi",
@@ -158,16 +197,17 @@ export default function LahanPage() {
       if (!response.ok) {
         throw new Error("Gagal menambahkan lahan");
       }
-      
+
       await fetchLahan(); // refresh list
       resetForm();
       setIsOpenAdd(false);
-
     } catch (err: any) {
       alert(err.message);
     }
   };
-
+  const handleOpenDetail = (lahan: Lahan) => {
+    setSelectedLahan(lahan);
+  };
   const handleOpenEditDialog = (lahan: Lahan) => {
     setSelectedLahan(lahan);
     setNamaLahan(lahan.namaLahan);
@@ -175,59 +215,60 @@ export default function LahanPage() {
     setPohonLahan(String(lahan.jumlahPohon));
     setLokasiLahan(lahan.lokasiAddress);
     setDeskripsiLahan(lahan.deskripsi || "");
-    setTanggalTanam(lahan.tanggalTanam ? new Date(lahan.tanggalTanam).toISOString().split('T')[0] : "");
+    setTanggalTanam(
+      lahan.tanggalTanam
+        ? new Date(lahan.tanggalTanam).toISOString().split("T")[0]
+        : "",
+    );
     setIsEditOpen(true);
-  }
-
+  };
   const handleEditLahan = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedLahan) return;
 
     try {
-        const response = await fetch(`/api/app/lahan/${selectedLahan.id}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                namaLahan: namaLahan,
-                luasM2: Number(luasLahan),
-                jumlahPohon: Number(pohonLahan),
-                lokasiAddress: lokasiLahan,
-                deskripsi: deskripsiLahan,
-                tanggalTanam: tanggalTanam,
-            })
-        });
+      const response = await fetch(`/api/app/lahan/${selectedLahan.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          namaLahan: namaLahan,
+          luasM2: Number(luasLahan),
+          jumlahPohon: Number(pohonLahan),
+          lokasiAddress: lokasiLahan,
+          deskripsi: deskripsiLahan,
+          tanggalTanam: tanggalTanam,
+        }),
+      });
 
-        if (!response.ok) throw new Error('Gagal mengupdate lahan');
+      if (!response.ok) throw new Error("Gagal mengupdate lahan");
 
-        await fetchLahan();
-        setIsEditOpen(false);
-        setSelectedLahan(null);
-        resetForm();
-
-    } catch(err: any) {
-        alert(err.message)
+      await fetchLahan();
+      setIsEditOpen(false);
+      setSelectedLahan(null);
+      resetForm();
+    } catch (err: any) {
+      alert(err.message);
     }
-  }
-  
+  };
+
   const handleDeleteLahan = async (id: string) => {
     if (!window.confirm("Apakah Anda yakin ingin menghapus lahan ini?")) return;
 
     try {
-        const response = await fetch(`/api/app/lahan/${id}`, {
-            method: 'DELETE',
-        });
+      const response = await fetch(`/api/app/lahan/${id}`, {
+        method: "DELETE",
+      });
 
-        if (!response.ok) throw new Error('Gagal menghapus lahan');
-        
-        // optimis update
-        setLahanList(prev => prev.filter(l => l.id !== id));
-        setSelectedLahan(null);
+      if (!response.ok) throw new Error("Gagal menghapus lahan");
 
+      // optimis update
+      setLahanList((prev) => prev.filter((l) => l.id !== id));
+      setSelectedLahan(null);
     } catch (err: any) {
-        alert(err.message);
+      alert(err.message);
     }
   };
-  
+
   // Render loading state
   if (isLoading) {
     return (
@@ -245,7 +286,7 @@ export default function LahanPage() {
       </div>
     );
   }
-  
+
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto w-full font-['Quicksand',sans-serif] bg-[#FFFFFF]">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 pb-5">
@@ -259,132 +300,138 @@ export default function LahanPage() {
         </div>
 
         {/* FormLahan Modal Dialog */}
-        <Dialog open={isOpenAdd} onOpenChange={(isOpen) => {
-          setIsOpenAdd(isOpen);
-          if (!isOpen) resetForm();
-        }}>
-         <Button 
-            onClick={() => {
-              setIsOpenAdd(true);
-              setSelectedLahan(null);
-            }}
-            className="bg-[#606C38] hover:bg-[#283618] text-white font-bold text-xs sm:text-sm rounded-xl h-11 px-4 shadow-none flex items-center gap-2 transition-colors shrink-0">
-                <Plus className="h-4 w-4" /> Tambah Lahan Baru
-            </Button>
-            <DialogContent className="sm:max-w-md bg-white border border-gray-200 rounded-2xl shadow-none font-['Quicksand',sans-serif]">
-              <DialogHeader>
-                <DialogTitle className="text-xl font-bold text-gray-900">
-                  Form Tambah Kebun Lahan
-                </DialogTitle>
-                <DialogDescription className="text-xs font-medium text-gray-500">
-                  Daftarkan plot lahan kelapa baru untuk pemantauan AI
-                  Forecasting.
-                </DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleAddLahan} className="space-y-3 py-2">
-                <div className="space-y-1">
+        <Dialog
+          open={isOpenAdd}
+          onOpenChange={(isOpen) => {
+            setIsOpenAdd(isOpen);
+            if (!isOpen) resetForm();
+          }}
+        >
+          <Button
+            onClick={openTambahDialog}
+            data-tour="tambah-lahan"
+            className="bg-[#606C38] hover:bg-[#283618] text-white font-bold text-xs sm:text-sm rounded-xl h-11 px-4 shadow-none flex items-center gap-2 transition-colors shrink-0"
+          >
+            <Plus className="h-4 w-4" /> Tambah Lahan Baru
+          </Button>
+          <DialogContent className="sm:max-w-md bg-white border border-gray-200 rounded-2xl shadow-none font-['Quicksand',sans-serif]">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-bold text-gray-900">
+                Form Tambah Kebun Lahan
+              </DialogTitle>
+              <DialogDescription className="text-xs font-medium text-gray-500">
+                Daftarkan plot lahan kelapa baru untuk pemantauan AI
+                Forecasting.
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleAddLahan} className="space-y-3 py-2">
+              <div className="space-y-1" data-tour="form-nama-lahan">
+                <Label className="text-xs font-bold text-gray-700">
+                  Nama Kebun / Blok
+                </Label>
+                <Input
+                  placeholder="Contoh: Kebun Blok C Selatan"
+                  value={namaLahan}
+                  onChange={(e) => setNamaLahan(e.target.value)}
+                  className="h-11 rounded-xl text-xs"
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1" data-tour="form-luas-lahan">
                   <Label className="text-xs font-bold text-gray-700">
-                    Nama Kebun / Blok
+                    Luas (Meter persegi)
                   </Label>
                   <Input
-                    placeholder="Contoh: Kebun Blok C Selatan"
-                    value={namaLahan}
-                    onChange={(e) => setNamaLahan(e.target.value)}
+                    type="number"
+                    placeholder="2000"
+                    value={luasLahan}
+                    onChange={(e) => setLuasLahan(e.target.value)}
                     className="h-11 rounded-xl text-xs"
                     required
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <Label className="text-xs font-bold text-gray-700">
-                      Luas (Meter persegi)
-                    </Label>
-                    <Input
-                      type="number"
-                      placeholder="2000"
-                      value={luasLahan}
-                      onChange={(e) => setLuasLahan(e.target.value)}
-                      className="h-11 rounded-xl text-xs"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs font-bold text-gray-700">
-                      Jumlah Pohon
-                    </Label>
-                    <Input
-                      type="number"
-                      placeholder="300"
-                      value={pohonLahan}
-                      onChange={(e) => setPohonLahan(e.target.value)}
-                      className="h-11 rounded-xl text-xs"
-                      required
-                    />
-                  </div>
-                </div>
-                <div className="space-y-1">
+                <div className="space-y-1" data-tour="form-pohon-lahan">
                   <Label className="text-xs font-bold text-gray-700">
-                    Lokasi Kebun
+                    Jumlah Pohon
                   </Label>
                   <Input
-                    placeholder="Kecamatan / Desa"
-                    value={lokasiLahan}
-                    onChange={(e) => setLokasiLahan(e.target.value)}
+                    type="number"
+                    placeholder="300"
+                    value={pohonLahan}
+                    onChange={(e) => setPohonLahan(e.target.value)}
                     className="h-11 rounded-xl text-xs"
+                    required
                   />
                 </div>
-                 <div className="space-y-1">
-                  <Label className="text-xs font-bold text-gray-700">
-                    Deskripsi (Opsional)
-                  </Label>
-                  <Input
-                    placeholder="misal: Lahan di dekat sungai"
-                    value={deskripsiLahan}
-                    onChange={(e) => setDeskripsiLahan(e.target.value)}
-                    className="h-11 rounded-xl text-xs"
-                  />
-                </div>
-                 <div className="space-y-1">
-                  <Label className="text-xs font-bold text-gray-700">
-                    Tanggal Tanam (Opsional)
-                  </Label>
-                  <Input
-                    type="date"
-                    value={tanggalTanam}
-                    onChange={(e) => setTanggalTanam(e.target.value)}
-                    className="h-11 rounded-xl text-xs"
-                  />
-                </div>
-                <DialogFooter className="pt-2">
-                  <Button
-                    type="submit"
-                    className="w-full bg-[#606C38] hover:bg-[#283618] text-white text-xs font-bold h-11 rounded-xl shadow-none"
-                  >
-                    Simpan Kebun Lahan
-                  </Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
-        </div>
+              </div>
+              <div className="space-y-1" data-tour="form-lokasi-lahan">
+                <Label className="text-xs font-bold text-gray-700">
+                  Lokasi Kebun
+                </Label>
+                <Input
+                  placeholder="Kecamatan / Desa"
+                  value={lokasiLahan}
+                  onChange={(e) => setLokasiLahan(e.target.value)}
+                  className="h-11 rounded-xl text-xs"
+                />
+              </div>
+              <div className="space-y-1" data-tour="form-deskripsi-lahan">
+                <Label className="text-xs font-bold text-gray-700">
+                  Deskripsi (Opsional)
+                </Label>
+                <Input
+                  placeholder="misal: Lahan di dekat sungai"
+                  value={deskripsiLahan}
+                  onChange={(e) => setDeskripsiLahan(e.target.value)}
+                  className="h-11 rounded-xl text-xs"
+                />
+              </div>
+              <div className="space-y-1" data-tour="form-tanggal-tanam">
+                <Label className="text-xs font-bold text-gray-700">
+                  Tanggal Tanam (Opsional)
+                </Label>
+                <Input
+                  type="date"
+                  value={tanggalTanam}
+                  onChange={(e) => setTanggalTanam(e.target.value)}
+                  className="h-11 rounded-xl text-xs"
+                />
+              </div>
+              <DialogFooter className="pt-2">
+                <Button
+                  data-tour="form-simpan-lahan"
+                  type="submit"
+                  className="w-full bg-[#606C38] hover:bg-[#283618] text-white text-xs font-bold h-11 rounded-xl shadow-none"
+                >
+                  Simpan Kebun Lahan
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </div>
 
-       {/* Stat Lahan Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 w-full">
+      {/* Stat Lahan Cards */}
+      <div
+        data-tour="statistik lahan"
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 w-full"
+      >
         {lahanStats.map((data, index) => (
           <Card
             key={index}
             className="bg-white border border-gray-200 rounded-2xl shadow-none hover:border-gray-300 transition-colors"
           >
             <CardContent className="p-4 sm:p-5 flex items-center gap-4">
-               <div className="w-16 h-16 shrink-0 border border-gray-200 bg-gray-50/50 rounded-2xl flex items-center justify-center">
-                  <Image
-                    src={data.iconSrc}
-                    alt={data.text}
-                    width={48}
-                    height={48}
-                    className="object-contain"
-                  />
-                </div>
+              <div className="w-16 h-16 shrink-0 border border-gray-200 bg-gray-50/50 rounded-2xl flex items-center justify-center">
+                <Image
+                  src={data.iconSrc}
+                  alt={data.text}
+                  width={48}
+                  height={48}
+                  className="object-contain"
+                />
+              </div>
               <div>
                 <span className="text-[11px] font-bold text-gray-500 mb-0.5 uppercase tracking-wider">
                   {data.text}
@@ -393,7 +440,7 @@ export default function LahanPage() {
                   {data.stat}
                 </h3>
                 {data.subtitle && (
-                   <p className="text-[11px] font-medium text-gray-500 mt-0.5">
+                  <p className="text-[11px] font-medium text-gray-500 mt-0.5">
                     {data.subtitle}
                   </p>
                 )}
@@ -403,91 +450,104 @@ export default function LahanPage() {
         ))}
       </div>
 
-        {/* Land Plot List Section */}
-        <Card className="bg-white border border-gray-200 rounded-2xl shadow-none">
-          <CardHeader className="pb-3 border-b border-gray-100 flex flex-row items-center justify-between space-y-0">
-            <div>
-              <CardTitle className="text-base font-bold text-gray-900">
-                Daftar Lahan Terdaftar
-              </CardTitle>
-              <p className="text-xs font-medium text-gray-500">
-                Klik pada kartu lahan untuk membuka rincian lengkap dan opsi aksi.
-              </p>
-            </div>
-            <Badge className="bg-[#606C38] text-white text-[10px] font-bold shadow-none">
-              {lahanList.length} Lahan Aktif
-            </Badge>
-          </CardHeader>
+      {/* Land Plot List Section */}
+      <Card
+        data-tour="list-lahan"
+        className="bg-white border border-gray-200 rounded-2xl shadow-none"
+      >
+        <CardHeader className="pb-3 border-b border-gray-100 flex flex-row items-center justify-between space-y-0">
+          <div>
+            <CardTitle className="text-base font-bold text-gray-900">
+              Daftar Lahan Terdaftar
+            </CardTitle>
+            <p className="text-xs font-medium text-gray-500">
+              Klik pada kartu lahan untuk membuka rincian lengkap dan opsi aksi.
+            </p>
+          </div>
+          <Badge className="bg-[#606C38] text-white text-[10px] font-bold shadow-none">
+            {lahanList.length} Lahan Aktif
+          </Badge>
+        </CardHeader>
 
-          <CardContent className="space-y-4 pt-4">
-            {lahanList.map((item) => (
-              <div
-                key={item.id}
-                onClick={() => setSelectedLahan(item)}
-                className="p-5 rounded-2xl border border-gray-200 bg-white hover:border-[#606C38] hover:bg-gray-50/50 cursor-pointer transition-all space-y-4"
-              >
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-100 pb-3">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-base font-bold text-gray-900">
-                        {item.namaLahan}
-                      </h3>
-                      <Badge className="bg-[#606C38] text-white text-[10px] font-bold shadow-none">
-                        {item.status || "PRODUKTIF"}
-                      </Badge>
-                    </div>
-                    <p className="text-xs font-medium text-gray-500 flex items-center gap-1 mt-0.5">
-                      <MapPin className="h-3.5 w-3.5 text-[#606C38]" />{" "}
-                      {item.lokasiAddress}
-                    </p>
+        <CardContent className="space-y-4 pt-4">
+          {lahanList.map((item, index) => (
+            <div
+              key={item.id}
+              data-tour={index === 0 ? "card-lahan-pertama" : undefined}
+              onClick={() => handleOpenDetail(item)}
+              className="p-5 rounded-2xl border border-gray-200 bg-white hover:border-[#606C38] hover:bg-gray-50/50 cursor-pointer transition-all space-y-4"
+            >
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-100 pb-3">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-base font-bold text-gray-900">
+                      {item.namaLahan}
+                    </h3>
+                    <Badge className="bg-[#606C38] text-white text-[10px] font-bold shadow-none">
+                      {item.status || "PRODUKTIF"}
+                    </Badge>
                   </div>
-
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-4 text-xs font-bold text-gray-700 bg-gray-50 px-3 py-2 rounded-xl border border-gray-100">
-                      <span>Luas: {item.luasM2} m²</span>
-                      <span>Pohon: {item.jumlahPohon} Pohon</span>
-                    </div>
-                  </div>
+                  <p className="text-xs font-medium text-gray-500 flex items-center gap-1 mt-0.5">
+                    <MapPin className="h-3.5 w-3.5 text-[#606C38]" />{" "}
+                    {item.lokasiAddress}
+                  </p>
                 </div>
 
-                {/* Kondisi Lahan Overview */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-                  <div className="p-3 bg-gray-50/50 rounded-xl border border-gray-100 space-y-1">
-                    <span className="text-[10px] font-bold text-gray-400 uppercase">
-                      Tanggal Tanam
-                    </span>
-                    <p className="font-bold text-gray-800">{formatDate(item.tanggalTanam)}</p>
-                  </div>
-                  <div className="p-3 bg-gray-50/50 rounded-xl border border-gray-100 space-y-1">
-                    <span className="text-[10px] font-bold text-gray-400 uppercase">
-                      Pupuk
-                    </span>
-                    <p className="font-bold text-gray-800">{item.pupuk || 'N/A'}</p>
-                  </div>
-                  <div className="p-3 bg-gray-50/50 rounded-xl border border-gray-100 space-y-1">
-                    <span className="text-[10px] font-bold text-gray-400 uppercase">
-                      Total Panen
-                    </span>
-                    <p className="font-bold text-gray-800">N/A</p>
-                  </div>
-                  <div className="p-3 bg-[#FEFAE0]/30 rounded-xl border border-gray-200/80 space-y-1">
-                    <span className="text-[10px] font-bold text-[#BC6C25] uppercase">
-                      Estimasi Panen
-                    </span>
-                    <p className="font-bold text-[#606C38]">{formatDate(item.waktuPanenEstimate)}</p>
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-4 text-xs font-bold text-gray-700 bg-gray-50 px-3 py-2 rounded-xl border border-gray-100">
+                    <span>Luas: {item.luasM2} m²</span>
+                    <span>Pohon: {item.jumlahPohon} Pohon</span>
                   </div>
                 </div>
               </div>
-            ))}
-          </CardContent>
-        </Card>
 
-        {/* --- "DETAIL LAHAN" DIALOG MODAL --- */}
+              {/* Kondisi Lahan Overview */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                <div className="p-3 bg-gray-50/50 rounded-xl border border-gray-100 space-y-1">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase">
+                    Tanggal Tanam
+                  </span>
+                  <p className="font-bold text-gray-800">
+                    {formatDate(item.tanggalTanam)}
+                  </p>
+                </div>
+                <div className="p-3 bg-gray-50/50 rounded-xl border border-gray-100 space-y-1">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase">
+                    Pupuk
+                  </span>
+                  <p className="font-bold text-gray-800">
+                    {item.pupuk || "N/A"}
+                  </p>
+                </div>
+                <div className="p-3 bg-gray-50/50 rounded-xl border border-gray-100 space-y-1">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase">
+                    Total Panen
+                  </span>
+                  <p className="font-bold text-gray-800">N/A</p>
+                </div>
+                <div className="p-3 bg-[#FEFAE0]/30 rounded-xl border border-gray-200/80 space-y-1">
+                  <span className="text-[10px] font-bold text-[#BC6C25] uppercase">
+                    Estimasi Panen
+                  </span>
+                  <p className="font-bold text-[#606C38]">
+                    {formatDate(item.waktuPanenEstimate)}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+
+      {/* --- "DETAIL LAHAN" DIALOG MODAL --- */}
       <Dialog
         open={!!selectedLahan && !isEditOpen}
         onOpenChange={() => setSelectedLahan(null)}
       >
-        <DialogContent className="sm:max-w-lg bg-white border border-gray-200 rounded-2xl shadow-none font-['Quicksand',sans-serif]">
+        <DialogContent
+          data-tour="detail-lahan"
+          className="sm:max-w-lg bg-white border border-gray-200 rounded-2xl shadow-none font-['Quicksand',sans-serif]"
+        >
           <DialogHeader>
             <div className="flex items-center gap-2">
               <div className="h-8 w-8 rounded-lg bg-[#606C38]/10 text-[#606C38] flex items-center justify-center">
@@ -544,14 +604,16 @@ export default function LahanPage() {
                   <span className="text-[10px] font-bold text-gray-400 uppercase">
                     Tanggal Tanam
                   </span>
-                   <p className="text-sm font-bold text-gray-800">{formatDate(selectedLahan.tanggalTanam)}</p>
+                  <p className="text-sm font-bold text-gray-800">
+                    {formatDate(selectedLahan.tanggalTanam)}
+                  </p>
                 </div>
                 <div className="p-3 border border-gray-200 rounded-xl space-y-0.5">
                   <span className="text-[10px] font-bold text-gray-400 uppercase">
                     Jenis Pupuk
                   </span>
                   <p className="text-sm font-bold text-gray-800">
-                    {selectedLahan.pupuk || 'N/A'}
+                    {selectedLahan.pupuk || "N/A"}
                   </p>
                 </div>
               </div>
@@ -573,13 +635,17 @@ export default function LahanPage() {
               onClick={() =>
                 selectedLahan && handleDeleteLahan(selectedLahan.id)
               }
+              data-tour="hapus-lahan"
               className="w-full sm:w-1/2 h-11 border-red-200 text-red-600 hover:bg-red-50 text-xs font-bold rounded-xl shadow-none flex items-center justify-center gap-1.5"
             >
               <Trash2 className="h-4 w-4" /> Hapus Lahan
             </Button>
 
             <Button
-              onClick={() => selectedLahan && handleOpenEditDialog(selectedLahan)}
+              onClick={() =>
+                selectedLahan && handleOpenEditDialog(selectedLahan)
+              }
+              data-tour="edit-lahan"
               className="w-full sm:w-1/2 h-11 bg-[#606C38] hover:bg-[#283618] text-white text-xs font-bold rounded-xl shadow-none flex items-center justify-center gap-1.5"
             >
               <Edit className="h-4 w-4" /> Edit Data Lahan
@@ -588,7 +654,7 @@ export default function LahanPage() {
         </DialogContent>
       </Dialog>
 
-       {/* --- "EDIT LAHAN" DIALOG MODAL --- */}
+      {/* --- "EDIT LAHAN" DIALOG MODAL --- */}
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
         <DialogContent className="sm:max-w-md bg-white border border-gray-200 rounded-2xl shadow-none font-['Quicksand',sans-serif]">
           <DialogHeader>
@@ -600,79 +666,79 @@ export default function LahanPage() {
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleEditLahan} className="space-y-3 py-2">
-             <div className="space-y-1">
-                  <Label className="text-xs font-bold text-gray-700">
-                    Nama Kebun / Blok
-                  </Label>
-                  <Input
-                    placeholder="Contoh: Kebun Blok C Selatan"
-                    value={namaLahan}
-                    onChange={(e) => setNamaLahan(e.target.value)}
-                    className="h-11 rounded-xl text-xs"
-                    required
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <Label className="text-xs font-bold text-gray-700">
-                      Luas (Meter persegi)
-                    </Label>
-                    <Input
-                      type="number"
-                      placeholder="2000"
-                      value={luasLahan}
-                      onChange={(e) => setLuasLahan(e.target.value)}
-                      className="h-11 rounded-xl text-xs"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs font-bold text-gray-700">
-                      Jumlah Pohon
-                    </Label>
-                    <Input
-                      type="number"
-                      placeholder="300"
-                      value={pohonLahan}
-                      onChange={(e) => setPohonLahan(e.target.value)}
-                      className="h-11 rounded-xl text-xs"
-                      required
-                    />
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs font-bold text-gray-700">
-                    Lokasi Kebun
-                  </Label>
-                  <Input
-                    placeholder="Kecamatan / Desa"
-                    value={lokasiLahan}
-                    onChange={(e) => setLokasiLahan(e.target.value)}
-                    className="h-11 rounded-xl text-xs"
-                  />
-                </div>
-                 <div className="space-y-1">
-                  <Label className="text-xs font-bold text-gray-700">
-                    Deskripsi (Opsional)
-                  </Label>
-                  <Input
-                    placeholder="misal: Lahan di dekat sungai"
-                    value={deskripsiLahan}
-                    onChange={(e) => setDeskripsiLahan(e.target.value)}
-                    className="h-11 rounded-xl text-xs"
-                  />
-                </div>
-                 <div className="space-y-1">
-                  <Label className="text-xs font-bold text-gray-700">
-                    Tanggal Tanam (Opsional)
-                  </Label>
-                  <Input
-                    type="date"
-                    value={tanggalTanam}
-                    onChange={(e) => setTanggalTanam(e.target.value)}
-                    className="h-11 rounded-xl text-xs"
-                  />
-                </div>
+            <div className="space-y-1">
+              <Label className="text-xs font-bold text-gray-700">
+                Nama Kebun / Blok
+              </Label>
+              <Input
+                placeholder="Contoh: Kebun Blok C Selatan"
+                value={namaLahan}
+                onChange={(e) => setNamaLahan(e.target.value)}
+                className="h-11 rounded-xl text-xs"
+                required
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs font-bold text-gray-700">
+                  Luas (Meter persegi)
+                </Label>
+                <Input
+                  type="number"
+                  placeholder="2000"
+                  value={luasLahan}
+                  onChange={(e) => setLuasLahan(e.target.value)}
+                  className="h-11 rounded-xl text-xs"
+                  required
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs font-bold text-gray-700">
+                  Jumlah Pohon
+                </Label>
+                <Input
+                  type="number"
+                  placeholder="300"
+                  value={pohonLahan}
+                  onChange={(e) => setPohonLahan(e.target.value)}
+                  className="h-11 rounded-xl text-xs"
+                  required
+                />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs font-bold text-gray-700">
+                Lokasi Kebun
+              </Label>
+              <Input
+                placeholder="Kecamatan / Desa"
+                value={lokasiLahan}
+                onChange={(e) => setLokasiLahan(e.target.value)}
+                className="h-11 rounded-xl text-xs"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs font-bold text-gray-700">
+                Deskripsi (Opsional)
+              </Label>
+              <Input
+                placeholder="misal: Lahan di dekat sungai"
+                value={deskripsiLahan}
+                onChange={(e) => setDeskripsiLahan(e.target.value)}
+                className="h-11 rounded-xl text-xs"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs font-bold text-gray-700">
+                Tanggal Tanam (Opsional)
+              </Label>
+              <Input
+                type="date"
+                value={tanggalTanam}
+                onChange={(e) => setTanggalTanam(e.target.value)}
+                className="h-11 rounded-xl text-xs"
+              />
+            </div>
             <DialogFooter className="pt-2">
               <Button
                 type="submit"
@@ -687,4 +753,3 @@ export default function LahanPage() {
     </div>
   );
 }
-

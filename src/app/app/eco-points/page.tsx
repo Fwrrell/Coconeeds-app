@@ -154,7 +154,10 @@ export default function EcoPointsPage() {
   );
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto w-full font-['Quicksand',sans-serif] bg-[#FFFFFF]">
+    <div
+      data-tour="halaman-Eco"
+      className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto w-full font-['Quicksand',sans-serif] bg-[#FFFFFF]"
+    >
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 pb-5">
         <div>
@@ -171,6 +174,7 @@ export default function EcoPointsPage() {
 
         <div className="flex items-center gap-3">
           <Link
+            data-tour="setor-limbah"
             href="/app/pengiriman"
             className="bg-[#606C38] hover:bg-[#283618] text-white font-bold text-xs sm:text-sm rounded-xl h-11 px-4 shadow-none flex items-center gap-2 transition-colors shrink-0"
           >
@@ -180,9 +184,15 @@ export default function EcoPointsPage() {
       </div>
 
       {/* TOP METRIC CARDS REDESIGN */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <div
+        data-tour="statistik-Eco"
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4"
+      >
         {/* card 1: total ecopoints & integrated progress level */}
-        <Card className="bg-white border border-gray-200 rounded-2xl shadow-none p-5 space-y-3">
+        <Card
+          data-tour="statistik-poin"
+          className="bg-white border border-gray-200 rounded-2xl shadow-none p-5 space-y-3"
+        >
           <div className="flex items-start justify-between">
             <div className="space-y-1">
               <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider block">
@@ -229,7 +239,10 @@ export default function EcoPointsPage() {
         </Card>
 
         {/* card 2: estimasi emisi co2 ditekan */}
-        <Card className="bg-white border border-gray-200 rounded-2xl shadow-none p-5 space-y-2 flex flex-col justify-between">
+        <Card
+          data-tour="statistik-emisi"
+          className="bg-white border border-gray-200 rounded-2xl shadow-none p-5 space-y-2 flex flex-col justify-between"
+        >
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-gray-500">
               Estimasi Emisi CO₂ Ditekan
@@ -249,7 +262,10 @@ export default function EcoPointsPage() {
         </Card>
 
         {/* card 3: total limbah disetor */}
-        <Card className="bg-white border border-gray-200 rounded-2xl shadow-none p-5 space-y-2 flex flex-col justify-between">
+        <Card
+          data-tour="statistik-setor"
+          className="bg-white border border-gray-200 rounded-2xl shadow-none p-5 space-y-2 flex flex-col justify-between"
+        >
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-gray-500">
               Total Limbah Disetor
@@ -269,7 +285,10 @@ export default function EcoPointsPage() {
         </Card>
 
         {/* card 4: peringkat saya (se-indonesia) */}
-        <Card className="bg-white border border-gray-200 rounded-2xl shadow-none p-5 space-y-2 flex flex-col justify-between">
+        <Card
+          data-tour="statistik-peringkat"
+          className="bg-white border border-gray-200 rounded-2xl shadow-none p-5 space-y-2 flex flex-col justify-between"
+        >
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-gray-500">
               Peringkat Saya (se-Indonesia)
@@ -293,7 +312,10 @@ export default function EcoPointsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left: Rewards & EcoMission */}
         <div className="lg:col-span-8 space-y-6">
-          <Card className="bg-white border border-gray-200 rounded-2xl shadow-none">
+          <Card
+            data-tour="katalog-hadiah"
+            className="bg-white border border-gray-200 rounded-2xl shadow-none"
+          >
             <CardHeader className="pb-3 border-b border-gray-100 flex flex-row items-center justify-between space-y-0">
               <div className="flex items-center gap-2">
                 <Gift className="h-4 w-4 text-[#606C38]" />
@@ -345,7 +367,10 @@ export default function EcoPointsPage() {
           </Card>
 
           {/* EcoMission */}
-          <Card className="bg-white border border-gray-200 rounded-2xl shadow-none">
+          <Card
+            data-tour="misi-eco"
+            className="bg-white border border-gray-200 rounded-2xl shadow-none"
+          >
             <CardHeader className="pb-3 border-b border-gray-100">
               <CardTitle className="text-base font-bold text-gray-900">
                 Misi Berkelanjutan (Active Missions)
@@ -374,7 +399,10 @@ export default function EcoPointsPage() {
 
         {/* Right: History */}
         <div className="lg:col-span-4 space-y-6">
-          <Card className="bg-white border border-gray-200 rounded-2xl shadow-none">
+          <Card
+            data-tour="riwayat-transaksi"
+            className="bg-white border border-gray-200 rounded-2xl shadow-none"
+          >
             <CardHeader className="pb-3 border-b border-gray-100">
               <CardTitle className="text-base font-bold text-gray-900">
                 Riwayat Transaksi Poin

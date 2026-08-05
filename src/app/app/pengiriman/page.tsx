@@ -43,6 +43,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { registerDialog } from "@/lib/tourGuide/tourController";
 // hapus prisma import biar vercel ga komplain client side
 type Panen = any;
 type Kopdes = any;
@@ -179,6 +180,20 @@ export default function FarmerPengirimanPage() {
     fetchInitialData();
   }, [fetchInitialData]);
 
+  // Helper fungsi untuk membuka dan menutup dialog dari App Tour
+  const openPengirimanDialog = () => {
+    setIsCreateModalOpen(true);
+  };
+
+  const closePengirimanDialog = () => {
+    setIsCreateModalOpen(false);
+  };
+
+  useEffect(() => {
+    registerDialog("open-pengiriman-dialog", openPengirimanDialog);
+    registerDialog("close-pengiriman-dialog", closePengirimanDialog);
+  }, []);
+
   // Handle selectedBarang auto-select first available item
   useEffect(() => {
     if (availableInventory.length > 0 && !selectedBarang) {
@@ -242,6 +257,10 @@ export default function FarmerPengirimanPage() {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleCreateShipmentSubmitWithTour = (e: React.FormEvent) => {
+    handleCreateShipmentSubmit(e);
   };
 
   if (isLoading) {
@@ -499,11 +518,11 @@ export default function FarmerPengirimanPage() {
             </div>
           ) : (
             <form
-              onSubmit={handleCreateShipmentSubmit}
+              onSubmit={handleCreateShipmentSubmitWithTour}
               className="space-y-4 py-2"
             >
               {/* 1. Pilih Barang dari Gudang */}
-              <div className="space-y-1.5">
+              <div className="space-y-1.5" data-tour="form-pilih-barang">
                 <Label className="text-xs font-bold text-gray-700">
                   Pilih Barang dari Gudang
                 </Label>
@@ -530,7 +549,7 @@ export default function FarmerPengirimanPage() {
               </div>
 
               {/* 2. Jumlah Pengiriman */}
-              <div className="space-y-1.5">
+              <div className="space-y-1.5" data-tour="form-jumlah-pengiriman">
                 <Label className="text-xs font-bold text-gray-700">
                   Jumlah Pengiriman (Kg / Liter)
                 </Label>
@@ -604,7 +623,7 @@ export default function FarmerPengirimanPage() {
 
               {/* 5. Metode Pengiriman & Tanggal */}
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
+                <div className="space-y-1.5" data-tour="form-metode-pengiriman">
                   <Label className="text-xs font-bold text-gray-700">
                     Metode Pengiriman
                   </Label>
@@ -630,7 +649,10 @@ export default function FarmerPengirimanPage() {
                   </Select>
                 </div>
 
-                <div className="space-y-1.5">
+                <div
+                  className="space-y-1.5"
+                  data-tour="form-tanggal-pengiriman"
+                >
                   <Label className="text-xs font-bold text-gray-700">
                     Tanggal
                   </Label>
@@ -647,6 +669,7 @@ export default function FarmerPengirimanPage() {
               {/* Submit CTA */}
               <DialogFooter className="pt-2">
                 <Button
+                  data-tour="form-kirim-pengiriman"
                   type="submit"
                   // lock tombol klo blm di verify
                   disabled={isSubmitting || !userProfile?.kopdes?.id}
