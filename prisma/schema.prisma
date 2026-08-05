@@ -51,6 +51,16 @@ model User {
   inventory          FarmerInventory[]   @relation("PetaniInventory")
   inventoryMutations InventoryMutation[] @relation("PetaniInventoryMutation")
   wallet             Wallet?
+
+  // profil perusahaan b2b
+  nib                String?
+  companyPhone       String?
+  companyAddress     String?
+  companyDescription String?
+  monthlyCapacityKg  Float?
+  penanggungJawab    String?
+
+  reviewsGiven Review[] @relation("PerusahaanReviews")
 }
 
 enum WalletTxType {
@@ -93,9 +103,11 @@ model Kopdes {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  users     User[]
-  panenList Panen[]
-  batchList Batch[]
+  users         User[]
+  panenList     Panen[]
+  batchList     Batch[]
+  negosiasiList Negosiasi[]
+  reviews       Review[]    @relation("KopdesReviews")
 }
 
 model SystemSetting {
@@ -151,6 +163,7 @@ model Panen {
   grade            String?
   moisture         Float?
   basePricePerKg   Float?
+  satuan           String           @default("Kg")
   profitMargin     Float?
   status           PanenStatus      @default(PENDING_PICKUP)
 
@@ -208,9 +221,11 @@ model WtbListing {
   perusahaanId String
   perusahaan   User      @relation(fields: [perusahaanId], references: [id], onDelete: Cascade)
   komoditas    String // e.g.: KOPRA | SABUT | ...
+  spesifikasi  String?
   targetWeight Float
   maxPrice     Float
   destination  String
+  deadline     DateTime?
   status       WtbStatus @default(OPEN)
   dealPrice    Float?
   createdAt    DateTime  @default(now())
@@ -220,14 +235,37 @@ model WtbListing {
   batches   Batch[]
 }
 
+enum NegosiasiStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  COUNTER_OFFER
+}
+
 model Negosiasi {
-  id           String     @id @default(uuid())
+  id           String          @id @default(uuid())
   wtbId        String
-  wtb          WtbListing @relation(fields: [wtbId], references: [id], onDelete: Cascade)
+  wtb          WtbListing      @relation(fields: [wtbId], references: [id], onDelete: Cascade)
+  kopdesId     String?
+  kopdes       Kopdes?         @relation(fields: [kopdesId], references: [id])
   senderRole   Role
   offeredPrice Float
+  volumeKg     Float?
   note         String?
-  createdAt    DateTime   @default(now())
+  status       NegosiasiStatus @default(PENDING)
+  createdAt    DateTime        @default(now())
+}
+
+model Review {
+  id           String   @id @default(uuid())
+  perusahaanId String
+  perusahaan   User     @relation("PerusahaanReviews", fields: [perusahaanId], references: [id], onDelete: Cascade)
+  kopdesId     String
+  kopdes       Kopdes   @relation("KopdesReviews", fields: [kopdesId], references: [id], onDelete: Cascade)
+  komoditas    String
+  rating       Int
+  ulasan       String
+  createdAt    DateTime @default(now())
 }
 
 enum PengirimanKapalStatus {
