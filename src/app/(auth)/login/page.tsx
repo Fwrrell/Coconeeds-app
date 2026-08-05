@@ -257,7 +257,7 @@ function LoginContent() {
                 disabled={isLoading}
                 onClick={async () => {
                   setIsLoading(true);
-                  await signIn("google", { callbackUrl: "/app" });
+                  await signIn("google", { callbackUrl: "/perusahaan" });
                 }}
                 className={cn(
                   buttonVariants({

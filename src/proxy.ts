@@ -21,6 +21,7 @@ export async function proxy(request: NextRequest) {
   const isAuthRoute = authRoutes.includes(nextUrl.pathname);
   const isAdminLoginRoute = nextUrl.pathname === "/admin/login";
   const isAdminRoute = nextUrl.pathname.startsWith("/admin");
+  const isPerusahaanRoute = nextUrl.pathname.startsWith("/perusahaan");
 
   if (isApiAuthRoute) {
     return NextResponse.next();
@@ -53,9 +54,41 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // guard route perusahaan: hrus login & role PERUSAHAAN + APPROVED
+  if (isPerusahaanRoute) {
+    if (!isLoggedIn) {
+      return NextResponse.redirect(new URL("/login", nextUrl));
+    }
+    // jika sudah login tapi bukan perusahaan, redirect sesuai role
+    if (userRole === "PETANI") {
+      return NextResponse.redirect(new URL("/app", nextUrl));
+    }
+    if (userRole === "ADMIN") {
+      return NextResponse.redirect(new URL("/admin", nextUrl));
+    }
+
+    const isApprovedCompany =
+      userRole === "PERUSAHAAN" && userStatus === "APPROVED";
+    if (!isApprovedCompany) {
+      return NextResponse.redirect(
+        new URL("/login?error=PendingApproval", nextUrl),
+      );
+    }
+    return NextResponse.next();
+  }
+
   const isProtectedRoute = nextUrl.pathname.startsWith("/app");
-  if (isProtectedRoute && !isLoggedIn) {
-    return NextResponse.redirect(new URL("/login", nextUrl));
+  if (isProtectedRoute) {
+    if (!isLoggedIn) {
+      return NextResponse.redirect(new URL("/login", nextUrl));
+    }
+    // jika sudah login tapi bukan petani, redirect sesuai role
+    if (userRole === "PERUSAHAAN") {
+      return NextResponse.redirect(new URL("/perusahaan", nextUrl));
+    }
+    if (userRole === "ADMIN") {
+      return NextResponse.redirect(new URL("/admin", nextUrl));
+    }
   }
 
   return NextResponse.next();
