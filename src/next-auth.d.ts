@@ -1,10 +1,9 @@
 import type { DefaultSession } from "next-auth";
+import type { DefaultJWT } from "next-auth/jwt";
 import { Role, ApprovalStatus } from "@prisma/client";
 
+// augment tipe next-auth dan jwt secara global
 declare module "next-auth" {
-  /**
-   * Returned by `useSession`, `getSession` and received as a prop on the `SessionProvider` React Context
-   */
   interface Session {
     user: {
       id: string;
@@ -17,6 +16,14 @@ declare module "next-auth" {
   interface User {
     role: Role;
     approvalStatus: ApprovalStatus;
+    isVerified?: boolean;
+  }
+}
+
+declare module "next-auth/jwt" {
+  interface JWT extends DefaultJWT {
+    role?: Role;
+    approvalStatus?: ApprovalStatus;
     isVerified?: boolean;
   }
 }

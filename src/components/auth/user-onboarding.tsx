@@ -108,7 +108,7 @@ export default function UserOnboardingBlock() {
         }
         const result = await validate();
         if (!result.success) {
-          setErrors(toErrors(result.issues));
+          setErrors(toErrors((result as any).issues));
           return false;
         }
         setErrors({});

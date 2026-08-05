@@ -1,5 +1,4 @@
 import NextAuth, { CredentialsSignin } from "next-auth";
-import { DefaultJWT } from "next-auth/jwt";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
 import { PrismaAdapter } from "@auth/prisma-adapter";
@@ -7,23 +6,10 @@ import prisma from "./prisma";
 import bcrypt from "bcrypt";
 import { Role, ApprovalStatus } from "@prisma/client";
 
-declare module "next-auth" {
-  interface User {
-    role: Role;
-    approvalStatus: ApprovalStatus;
-  }
-}
-
-declare module "next-auth/jwt" {
-  interface JWT extends DefaultJWT {
-    role?: Role;
-    approvalStatus?: ApprovalStatus;
-  }
-}
-
 class CustomAuthError extends CredentialsSignin {
+  code: string;
   constructor(msg: string) {
-    super();
+    super(msg);
     this.code = msg;
   }
 }
@@ -39,15 +25,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-      profile(profile) {
+      profile(profile: Record<string, any>) {
         // fix type error vercel, ganti status ke approvalStatus
         return {
           id: profile.sub,
           name: profile.name,
           email: profile.email,
           image: profile.picture,
-          role: Role.PERUSAHAAN, // Default role
-          approvalStatus: ApprovalStatus.PENDING, // Default status
+          role: Role.PERUSAHAAN,
+          approvalStatus: ApprovalStatus.PENDING,
         };
       },
     }),
@@ -58,7 +44,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         phoneNumber: { label: "Nomor HP", type: "text" },
         pin: { label: "PIN", type: "password" },
       },
-      async authorize(credentials) {
+      async authorize(credentials: Record<string, any> | undefined) {
         if (!credentials?.phoneNumber || !credentials?.pin) {
           throw new CustomAuthError("Nomor HP dan PIN wajib diisi");
         }
@@ -68,6 +54,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (!user || !user.pin) {
           throw new CustomAuthError("Nomor HP tidak terdaftar.");
         }
+
         const isPinValid = await bcrypt.compare(
           credentials.pin as string,
           user.pin,
@@ -88,7 +75,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ],
 
   callbacks: {
-    async signIn({ user, account }) {
+    async signIn({ user, account }: { user: any; account: any }) {
       if (account?.provider === "google" && user.email) {
         const email = user.email.toLowerCase().trim();
 
@@ -98,7 +85,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         });
 
         if (isWhitelisted) {
-          // admin dpt akses langsung
           return true;
         }
 
@@ -108,7 +94,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         });
 
         if (!dbUser) {
-          // create perusahaan pending user dlu
           try {
             await prisma.user.create({
               data: {
@@ -147,7 +132,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return true;
     },
 
-    async jwt({ token, user, account, trigger, profile }) {
+    async jwt({
+      token,
+      user,
+      profile,
+    }: {
+      token: any;
+      user?: any;
+      account?: any;
+      trigger?: any;
+      profile?: any;
+    }) {
       if (user && user.id) {
         const dbUser = await prisma.user.findUnique({
           where: { id: user.id },
@@ -180,7 +175,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             });
 
             if (whitelistedAdmin) {
-              if (dbUser.role !== Role.ADMIN || dbUser.approvalStatus !== ApprovalStatus.APPROVED) {
+              if (
+                dbUser.role !== Role.ADMIN ||
+                dbUser.approvalStatus !== ApprovalStatus.APPROVED
+              ) {
                 const updatedUser = await prisma.user.update({
                   where: { id: user.id },
                   data: {
@@ -202,7 +200,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             token.approvalStatus = dbUser.approvalStatus;
           }
         }
-      } else if (token.role === Role.ADMIN && process.env.NEXT_RUNTIME === "nodejs") {
+      } else if (
+        token.role === Role.ADMIN &&
+        process.env.NEXT_RUNTIME === "nodejs"
+      ) {
         const dbUser = await prisma.user.findUnique({
           where: { id: token.id as string },
           select: { role: true, approvalStatus: true },
@@ -213,7 +214,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return token;
     },
 
-    async session({ session, token }) {
+    async session({ session, token }: { session: any; token: any }) {
       if (session.user) {
         session.user.id = token.id as string;
         session.user.role = token.role as Role;
