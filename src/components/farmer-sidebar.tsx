@@ -114,7 +114,10 @@ export function FarmerSidebar({
 
   useEffect(() => {
     if (isModalOpen) {
-      fetchModalData();
+      const timer = setTimeout(() => {
+        fetchModalData();
+      }, 0);
+      return () => clearTimeout(timer);
     }
   }, [isModalOpen, fetchModalData]);
 
