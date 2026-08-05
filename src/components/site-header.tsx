@@ -13,9 +13,6 @@ export function SiteHeader() {
           orientation="vertical"
           className="mx-2 h-4 data-vertical:self-auto"
         />
-        <h1 className="text-base font-bold text-gray-900 font-['Quicksand',sans-serif]">
-          Panel Kontrol Admin
-        </h1>
       </div>
     </header>
   );

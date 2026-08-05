@@ -1,10 +1,6 @@
 "use client";
 
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -35,6 +31,10 @@ export function NavUser({
   const { isMobile } = useSidebar();
   const initials = user.name ? user.name.substring(0, 2).toUpperCase() : "AD";
 
+  const handleLogout = async () => {
+    await signOut({ callbackUrl: "/login" });
+  };
+
   return (
     <SidebarMenu className="font-['Quicksand',sans-serif]">
       <SidebarMenuItem>
@@ -52,7 +52,9 @@ export function NavUser({
                   </AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-xs leading-tight min-w-0">
-                  <span className="truncate font-bold text-gray-900">{user.name}</span>
+                  <span className="truncate font-bold text-gray-900">
+                    {user.name}
+                  </span>
                   <span className="truncate text-[11px] font-medium text-gray-500">
                     {user.email}
                   </span>
@@ -77,7 +79,9 @@ export function NavUser({
                     </AvatarFallback>
                   </Avatar>
                   <div className="grid flex-1 text-left text-xs leading-tight min-w-0">
-                    <span className="truncate font-bold text-gray-900">{user.name}</span>
+                    <span className="truncate font-bold text-gray-900">
+                      {user.name}
+                    </span>
                     <span className="truncate text-[11px] font-medium text-gray-500">
                       {user.email}
                     </span>
@@ -103,7 +107,7 @@ export function NavUser({
             <DropdownMenuSeparator className="bg-gray-100" />
             <div className="p-1">
               <DropdownMenuItem
-                onClick={() => signOut({ callbackUrl: "/admin/login" })}
+                onClick={handleLogout}
                 className="text-xs font-bold text-red-600 hover:bg-red-50 cursor-pointer rounded-sm"
               >
                 <LogOut className="mr-2 h-3.5 w-3.5 text-red-500" />
@@ -116,4 +120,3 @@ export function NavUser({
     </SidebarMenu>
   );
 }
-
