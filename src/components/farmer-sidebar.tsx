@@ -83,6 +83,24 @@ export function FarmerSidebar({
 
   const [modalSuccess, setModalSuccess] = useState(false);
 
+  // Helper fungsi untuk membuka dan menutup dialog dari App Tour & Handler
+  const openHarvestDialog = useCallback(() => {
+    setModalOpen(true);
+  }, [setModalOpen]);
+
+  const closeHarvestDialog = useCallback(() => {
+    setModalOpen(false);
+  }, [setModalOpen]);
+
+  useEffect(() => {
+    registerDialog("open-harvest-dialog", openHarvestDialog);
+    registerDialog("close-harvest-dialog", closeHarvestDialog);
+  }, [openHarvestDialog, closeHarvestDialog]);
+
+  const handleOpenHarvestModal = () => {
+    openHarvestDialog();
+  };
+
   // dynamic user data n avatar initials logic
   const userName = session?.user?.name || "Pak Agus";
   const avatarInitials = getAvatarInitials(userName);
@@ -213,7 +231,7 @@ export function FarmerSidebar({
         <div className="p-4 border-b border-gray-100">
           <Button
             data-tour="hasil-panen"
-            onClick={() => setModalOpen(true)}
+            onClick={handleOpenHarvestModal}
             className="w-full bg-[#606C38] hover:bg-[#283618] text-white font-bold text-xs h-11 rounded-xl shadow-none flex items-center justify-center gap-2 transition-colors"
           >
             <PlusCircle className="h-4 w-4" /> Catat Hasil Panen
@@ -300,7 +318,7 @@ export function FarmerSidebar({
           ) : (
             <form onSubmit={handleHarvestSubmit} className="space-y-4 py-2">
               {/* Field 1: Pilih Lahan (Wired to Real API Data) */}
-              <div className="space-y-1.5">
+              <div className="space-y-1.5" data-tour="form-kebun-asal">
                 <div className="flex items-center justify-between">
                   <Label className="text-xs font-bold text-gray-700">
                     Pilih Lahan Kebun

@@ -13,7 +13,7 @@ export const getLahanSteps = (
   onGoToProduksi?: () => void,
 ): DriveStep[] => [
   {
-    element: '[data-tour="statistik lahan"]',
+    element: '[data-tour="statistik-lahan"]',
     popover: {
       title: "Statistik Lahan",
       description:
@@ -149,9 +149,17 @@ export const getLahanSteps = (
   {
     element: '[data-tour="hapus-lahan"]',
     popover: {
-      title: "hapus Lahan",
+      title: "Hapus Lahan",
       description:
         "Untuk menghapus lahan, kamu bisa menggunakan tombol hapus lahan ini.",
+    },
+  },
+  {
+    element: '[data-tour="menu-produksi"]',
+    popover: {
+      title: "Produksi & Stok",
+      description:
+        "Selanjutnya adalah halaman manajemen stok dan produksi komoditas kelapa. Kamu bisa mengklik menu Produksi & Stok pada sidebar atau menekan tombol Selanjutnya.",
       nextBtnText: "Ke Halaman Produksi →",
       onNextClick: () => {
         if (onGoToProduksi) {

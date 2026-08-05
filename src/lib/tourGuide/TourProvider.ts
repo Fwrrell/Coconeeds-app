@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { createDriver } from "./driverInstance";
 import { DriveStep, Driver, Config } from "driver.js";
+import { waitForElement } from "./tourController";
 import "driver.js/dist/driver.css";
 
 interface PropsDriver {
@@ -26,18 +27,40 @@ export default function TourProvider({
   useEffect(() => {
     if (!autoStart || !steps || steps.length === 0) return;
 
-    const driverObj = createDriver(steps, configOverrides);
-    driverRef.current = driverObj;
+    let isCancelled = false;
 
-    if (onDriverCreated) {
-      onDriverCreated(driverObj);
-    }
+    const startTour = async () => {
+      const firstSelector =
+        typeof steps[0]?.element === "string" ? steps[0].element : null;
 
-    driverObj.drive();
+      if (firstSelector) {
+        try {
+          await waitForElement(firstSelector, 5000);
+        } catch {
+          // Lanjut jika timeout agar tidak memblokir user
+        }
+      }
+
+      if (isCancelled) return;
+
+      const driverObj = createDriver(steps, configOverrides);
+      driverRef.current = driverObj;
+
+      if (onDriverCreated) {
+        onDriverCreated(driverObj);
+      }
+
+      driverObj.drive();
+    };
+
+    startTour();
 
     return () => {
-      driverObj.destroy();
-      driverRef.current = null;
+      isCancelled = true;
+      if (driverRef.current) {
+        driverRef.current.destroy();
+        driverRef.current = null;
+      }
     };
   }, [steps, autoStart, configOverrides, onDriverCreated]);
 

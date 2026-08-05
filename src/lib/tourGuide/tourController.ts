@@ -1,5 +1,5 @@
 import { Driver, DriveStep } from "driver.js";
-import { setNextTour, clearTourState } from "./tourStorage";
+import { setNextTour, clearTourState, setTourCompleted } from "./tourStorage";
 import { TOUR_STEP_FACTORIES, StepContext } from "./tourFlow";
 
 const dialogRegistry: Record<string, (() => void) | undefined> = {};
@@ -106,19 +106,35 @@ export async function openDialogAndProceed(
   }
 }
 
+export function destroyTour(getDriver?: () => Driver | null): void {
+  setTourCompleted(true);
+  clearTourState();
+  if (getDriver) {
+    const driver = getDriver();
+    if (driver) {
+      driver.destroy();
+    }
+  }
+}
+
 export function attachSidebarMenuListener(
   menuSelector: string,
   targetPath: string,
   getDriver: () => Driver | null,
+  isFinal?: boolean,
 ): () => void {
   const menuElement = document.querySelector(menuSelector);
   if (!menuElement) return () => {};
 
   const handleClick = () => {
-    setNextTour(targetPath);
-    const driver = getDriver();
-    if (driver) {
-      driver.destroy();
+    if (isFinal) {
+      destroyTour(getDriver);
+    } else {
+      setNextTour(targetPath);
+      const driver = getDriver();
+      if (driver) {
+        driver.destroy();
+      }
     }
   };
 
@@ -128,9 +144,6 @@ export function attachSidebarMenuListener(
   };
 }
 
-/**
- * Menyiapkan steps untuk rute tertentu dengan menginjeksikan context kontrol yang sesuai.
- */
 export function createStepsForPath(
   pathname: string,
   router: { push: (url: string) => void },
@@ -162,5 +175,4 @@ export function createStepsForPath(
  */
 export function handleTourDestroyed(): void {
   // Hanya membersihkan state tour jika tidak sedang berpindah ke halaman berikutnya
-  // State next-tour dipertahankan untuk dikonsumsi oleh halaman berikutnya
 }

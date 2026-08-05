@@ -414,7 +414,7 @@ export default function LahanPage() {
 
       {/* Stat Lahan Cards */}
       <div
-        data-tour="statistik lahan"
+        data-tour="statistik-lahan"
         className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 w-full"
       >
         {lahanStats.map((data, index) => (

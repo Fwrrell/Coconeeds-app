@@ -4,17 +4,17 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import TourProvider from "./TourProvider";
 import { Driver, DriveStep } from "driver.js";
-import { consumeNextTour, setCurrentTour } from "./tourStorage";
+import {
+  consumeNextTour,
+  setCurrentTour,
+  isTourCompleted,
+} from "./tourStorage";
 import { isFirstTourPage, hasTourConfig } from "./tourFlow";
 import {
   createStepsForPath,
   attachSidebarMenuListener,
 } from "./tourController";
 
-/**
- * TourLauncher adalah satu-satunya entry point yang menentukan tour apa yang berjalan
- * berdasarkan pathname dan alur tour di sessionStorage.
- */
 export default function TourLauncher() {
   const pathname = usePathname();
   const router = useRouter();
@@ -30,12 +30,16 @@ export default function TourLauncher() {
       return;
     }
 
+    // Jika tour sudah selesai (onboarding complete), jangan jalankan tour lagi
+    if (isTourCompleted()) {
+      setActiveSteps(null);
+      return;
+    }
+
     const nextTour = consumeNextTour();
     const isStartPage = isFirstTourPage(pathname);
     const isFromPreviousTour = nextTour === pathname;
 
-    // Tour hanya boleh berjalan jika merupakan halaman awal atau berasal dari tour sebelumnya.
-    // Jika user membuka URL secara manual maka tour tidak otomatis dimulai.
     if (isStartPage || isFromPreviousTour) {
       setCurrentTour(pathname);
       const steps = createStepsForPath(pathname, router, getDriver);
@@ -44,12 +48,41 @@ export default function TourLauncher() {
       setActiveSteps(null);
     }
 
+    const SIDEBAR_NAV_TARGETS: Record<
+      string,
+      { selector: string; targetPath: string; isFinal?: boolean }
+    > = {
+      "/app": {
+        selector: '[data-tour="menu-lahan"]',
+        targetPath: "/app/lahan",
+      },
+      "/app/lahan": {
+        selector: '[data-tour="menu-produksi"]',
+        targetPath: "/app/produksi",
+      },
+      "/app/produksi": {
+        selector: '[data-tour="menu-pengiriman"]',
+        targetPath: "/app/pengiriman",
+      },
+      "/app/pengiriman": {
+        selector: '[data-tour="menu-Ecopoint"]',
+        targetPath: "/app/eco-points",
+      },
+      "/app/eco-points": {
+        selector: '[data-tour="menu-dashboard"]',
+        targetPath: "/app",
+        isFinal: true,
+      },
+    };
+
     let cleanupSidebar: (() => void) | undefined;
-    if (pathname === "/app") {
+    const navConfig = SIDEBAR_NAV_TARGETS[pathname];
+    if (navConfig) {
       cleanupSidebar = attachSidebarMenuListener(
-        '[data-tour="menu-lahan"]',
-        "/app/lahan",
+        navConfig.selector,
+        navConfig.targetPath,
         getDriver,
+        navConfig.isFinal,
       );
     }
 

@@ -4,6 +4,7 @@ import { getLahanSteps } from "./steps/lahan";
 import { getProduksiSteps } from "./steps/produksi";
 import { getPengirimanSteps } from "./steps/pengiriman";
 import { getEcoSteps } from "./steps/ecopoint";
+import { destroyTour } from "./tourController";
 
 /**
  * Urutan alur tour onboarding di seluruh aplikasi.
@@ -62,10 +63,16 @@ export const TOUR_STEP_FACTORIES: Record<string, StepFactory> = {
       () => context.navigateToNext("/app/eco-points"),
     ),
   "/app/eco-points": (context: StepContext) =>
-    getEcoSteps({
-      getDriver: context.getDriver,
-      onOpenDialogAndProceed: context.onOpenDialogAndProceed ?? (() => {}),
-    }),
+    getEcoSteps(
+      {
+        getDriver: context.getDriver,
+        onOpenDialogAndProceed: context.onOpenDialogAndProceed ?? (() => {}),
+      },
+      () => {
+        destroyTour(context.getDriver);
+        context.navigateToNext("/app");
+      },
+    ),
 };
 
 /**

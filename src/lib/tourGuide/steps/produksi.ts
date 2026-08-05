@@ -221,6 +221,14 @@ export const getProduksiSteps = (
       title: "AI Business Advisor",
       description:
         "Dapatkan saran cerdas dan rekomendasi peluang pasar harian untuk memaksimalkan keuntungan hasil kebun kelapamu.",
+    },
+  },
+  {
+    element: '[data-tour="menu-pengiriman"]',
+    popover: {
+      title: "Pengiriman",
+      description:
+        "Selanjutnya adalah halaman logistik dan pengiriman hasil panen. Kamu bisa mengklik menu Pengiriman pada sidebar atau menekan tombol Selanjutnya.",
       nextBtnText: "Ke Halaman Pengiriman →",
       onNextClick: () => {
         if (onGoToPengiriman) {

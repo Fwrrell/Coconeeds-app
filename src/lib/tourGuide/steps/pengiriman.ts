@@ -13,41 +13,17 @@ export const getPengirimanSteps = (
   onGoToEcoPoints?: () => void,
 ): DriveStep[] => [
   {
-    element: '[data-tour="statistik-pengiriman"]',
+    element: '[data-tour="halaman-pengiriman"]',
     popover: {
-      title: "Statistik Pengiriman",
+      title: "Halaman Pengiriman & Logistik",
       description:
-        "Ringkasan performa logistik dan status pengiriman hasil panen komoditas kelapa Anda.",
-    },
-  },
-  {
-    element: '[data-tour="pengiriman-aktif"]',
-    popover: {
-      title: "Pengiriman Aktif",
-      description:
-        "Menampilkan jumlah total pesanan pengiriman kargo yang sedang berlangsung dan diproses.",
-    },
-  },
-  {
-    element: '[data-tour="estimasi-pencairan"]',
-    popover: {
-      title: "Estimasi Pencairan",
-      description:
-        "Perkiraan total dana hasil penjualan komoditas yang akan cair ke saldo setelah kargo lolos uji kualitas (QC) Kopdes.",
-    },
-  },
-  {
-    element: '[data-tour="jadwal-pickup"]',
-    popover: {
-      title: "Jadwal Pick-up",
-      description:
-        "Informasi tanggal penjemputan armada logistik Kopdes yang paling dekat untuk mengambil kargo di kebun Anda.",
+        "Halaman ini digunakan untuk mengelola dan memantau seluruh proses pengiriman hasil panen kelapa dari kebun Anda ke pos koperasi desa (Kopdes).",
     },
   },
   {
     element: '[data-tour="buat-pengiriman"]',
     popover: {
-      title: "Buat Pengiriman",
+      title: "Buat Pengiriman Baru",
       description:
         "Klik tombol ini untuk menjadwalkan penyerahan kargo hasil panen ke pihak Kopdes.",
       nextBtnText: "Buka Form Pengiriman →",
@@ -135,15 +111,7 @@ export const getPengirimanSteps = (
     popover: {
       title: "Pengiriman Berjalan",
       description:
-        "Pantau tahapan progress pengiriman secara real-time, mulai dari penjemputan, pemeriksaan QC, hingga penerimaan akhir.",
-    },
-  },
-  {
-    element: '[data-tour="jadwal-penjemputan"]',
-    popover: {
-      title: "Jadwal Penjemputan Kopdes",
-      description:
-        "Daftar jadwal terkonfirmasi kedatangan armada truk Kopdes ke kebun Anda.",
+        "Pantau tahapan pengiriman secara langsung, mulai dari penjemputan, pemeriksaan kualitas, hingga penerimaan akhir.",
     },
   },
   {
@@ -155,12 +123,12 @@ export const getPengirimanSteps = (
     },
   },
   {
-    element: '[data-tour="ai-logistik"]',
+    element: '[data-tour="menu-Ecopoint"]',
     popover: {
-      title: "AI Logistik Insight",
+      title: "Eco-Points",
       description:
-        "Rekomendasi cerdas dari AI untuk mengoptimalkan rute logistik, jadwal setor, dan menghemat biaya pengiriman kargo.",
-      nextBtnText: "Lanjut ke Eco-Points →",
+        "Selanjutnya adalah halaman program Eco-Points & ekonomi sirkular. Kamu bisa mengklik menu Eco-Points pada sidebar atau menekan tombol Selanjutnya.",
+      nextBtnText: "Ke Halaman Eco-Points →",
       onNextClick: () => {
         if (onGoToEcoPoints) {
           onGoToEcoPoints();

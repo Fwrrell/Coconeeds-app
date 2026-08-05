@@ -8,7 +8,10 @@ export interface EcoPointStepContext {
   ) => void;
 }
 
-export const getEcoSteps = (context?: EcoPointStepContext): DriveStep[] => [
+export const getEcoSteps = (
+  context?: EcoPointStepContext,
+  onGoToDashboard?: () => void,
+): DriveStep[] => [
   {
     element: '[data-tour="halaman-Eco"]',
     popover: {
@@ -87,6 +90,20 @@ export const getEcoSteps = (context?: EcoPointStepContext): DriveStep[] => [
       title: "Riwayat EcoPoint",
       description:
         "Seluruh riwayat perolehan maupun penukaran EcoPoint akan tercatat pada bagian ini.",
+    },
+  },
+  {
+    element: '[data-tour="menu-dashboard"]',
+    popover: {
+      title: "Selesai Onboarding",
+      description:
+        "Selamat! Kamu telah menyelesaikan seluruh rangkaian tour panduan aplikasi Coconeeds Farmer Portal. Klik tombol di bawah atau menu Dashboard untuk kembali ke beranda.",
+      nextBtnText: "Ke Dashboard →",
+      onNextClick: () => {
+        if (onGoToDashboard) {
+          onGoToDashboard();
+        }
+      },
     },
   },
 ];
