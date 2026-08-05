@@ -1,189 +1,124 @@
-🌴 Deskripsi Proyek
-Permasalahan yang Diselesaikan
-Indonesia merupakan salah satu produsen kelapa terbesar di dunia dengan luas perkebunan mencapai jutaan hektare dan melibatkan jutaan petani sebagai pelaku utama. Meskipun memiliki potensi yang besar, pengelolaan komoditas kelapa masih menghadapi berbagai tantangan, seperti keterbatasan akses pasar, rantai pasok yang panjang, kompleksitas distribusi pada wilayah kepulauan, data produksi yang belum terintegrasi, serta belum optimalnya pemanfaatan hasil samping kelapa. Kondisi tersebut menyebabkan rantai nilai komoditas kelapa belum mampu memberikan nilai ekonomi yang optimal bagi seluruh pelaku usaha, khususnya petani.
+# 🌴 Coconeeds
 
-🎯 Tujuan Aplikasi
-Coconeeds merupakan platform digital yang dikembangkan untuk membangun ekosistem rantai nilai komoditas kelapa yang menghubungkan petani, koperasi (Kopdes), dan perusahaan dalam satu sistem terintegrasi. Platform ini mengimplementasikan tiga pendekatan utama, yaitu Smart Agroindustry, Smart Logistics, dan Green Economy, guna meningkatkan efisiensi produksi, distribusi, serta pemanfaatan sumber daya yang berkelanjutan.
+[![Next.js](https://img.shields.io/badge/Next.js-000000?style=for-the-badge&logo=nextdotjs&logoColor=white)](https://nextjs.org/) [![Prisma](https://img.shields.io/badge/Prisma-3982CE?style=for-the-badge&logo=Prisma&logoColor=white)](https://www.prisma.io/) [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/) [![Vercel](https://img.shields.io/badge/Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white)](https://vercel.com/)
 
-🌴 Smart Agroindustry
-Mendukung digitalisasi proses produksi dan perdagangan komoditas melalui:
-Digitalisasi data lahan dan hasil panen
-AI Insight
-Quality Control (QC)
-Commodity Grading
-Commodity Batching
-Marketplace B2B
+Platform digital terintegrasi untuk membangun ekosistem rantai nilai komoditas kelapa yang efisien, transparan, dan berkelanjutan, menghubungkan petani, koperasi (Kopdes), dan perusahaan.
 
-🚢 Smart Logistics
-Meningkatkan efisiensi distribusi komoditas melalui:
-AI Cargo Pooling
-Joint Shipping
-Split Billing
-Product Traceability
+## 🎯 Permasalahan & Tujuan
 
-♻️ Green Economy
-Mendorong penerapan ekonomi sirkular melalui:
-Circular Resource Management
-Pemanfaatan hasil samping kelapa
-Eco Points & Gamification
+Indonesia, sebagai produsen kelapa terbesar, masih menghadapi tantangan dalam rantai pasok, akses pasar, dan optimalisasi hasil. **Coconeeds** hadir untuk menyelesaikan masalah ini dengan tiga pendekatan utama:
 
-Melalui ketiga pendekatan tersebut, Coconeeds bertujuan menciptakan rantai nilai komoditas kelapa yang lebih efisien, transparan, berkelanjutan, dan mampu meningkatkan nilai ekonomi bagi seluruh pelaku usaha.
+-   🌴 **Smart Agroindustry**: Digitalisasi data lahan, panen, QC, batching, dan marketplace B2B.
+-   🚢 **Smart Logistics**: Efisiensi distribusi dengan AI Cargo Pooling, Joint Shipping, dan Product Traceability.
+-   ♻️ **Green Economy**: Mendorong ekonomi sirkular melalui manajemen hasil samping dan insentif Eco Points.
 
-👥 Pengguna Aplikasi
-Coconeeds dirancang untuk digunakan oleh tiga jenis pengguna utama, yaitu :
-👨‍🌾 Petani
-Petani berperan sebagai produsen utama komoditas kelapa. Melalui Coconeeds, petani dapat mengelola data lahan, mencatat hasil panen, memperoleh rekomendasi AI, menyetorkan hasil samping kelapa, memperoleh Eco Points, serta memantau seluruh aktivitas produksi dan transaksi.
+## ✨ Fitur Utama
 
-🏢 Koperasi (Kopdes)
-Koperasi berperan sebagai agregator yang menghubungkan petani dengan perusahaan. Koperasi bertanggung jawab melakukan verifikasi hasil panen, Quality Control (QC), Commodity Grading, Commodity Batching, pengelolaan marketplace, koordinasi logistik, hingga distribusi komoditas.
+Aplikasi ini melayani tiga peran utama dalam ekosistem:
 
-🏭 Perusahaan
-Perusahaan menggunakan Coconeeds untuk memperoleh pasokan komoditas melalui Marketplace B2B, melakukan negosiasi dengan koperasi, memantau proses pengiriman, serta melakukan penelusuran asal komoditas melalui Product Traceability.
+### 👨‍🌾 Petani
+Sumber utama data produksi.
+-   **Fitur**: Login via No. HP & PIN, Manajemen Lahan, Input Hasil Panen, AI Insight, Manajemen Hasil Samping, Eco Points & Gamifikasi, Riwayat Transaksi.
 
-✨ Fitur Utama
-👨‍🌾 Petani
-Petani merupakan sumber utama data produksi dalam ekosistem Coconeeds.
+### 🏢 Koperasi (Kopdes)
+Agregator dan pusat kendali mutu.
+-   **Fitur**: Verifikasi Panen, QC & Grading, Batching Komoditas, Marketplace (Offer), Negosiasi, AI Cargo Pooling, Joint Shipping, Split Billing, Product Traceability (QR).
 
-Fitur
-🔐 Login menggunakan Nomor Telepon & PIN
-🌴 Manajemen Lahan
-🥥 Input Hasil Panen
-📊 AI Insight
-♻️ Circular Resource Management
-🎮 Eco Points & Gamification
-📦 Riwayat Transaksi
-🚢 Tracking Pengiriman
+### 🏭 Perusahaan
+Mitra off-taker yang mencari pasokan komoditas.
+-   **Fitur**: Login via Google, Membuat Want to Buy (WTB), Menerima Penawaran, Negosiasi, Tracking Pengiriman, Scan QR Traceability.
 
-🏢 Koperasi (Kopdes)
-Koperasi berperan sebagai pusat agregasi dan pengendalian mutu komoditas.
-Fitur
-📦 Verifikasi Hasil Panen
-⚖️ Penimbangan Aktual
-✅ Quality Control (QC)
-⭐ Commodity Grading
-📚 Commodity Batching
-🛒 Marketplace (Offer)
-🤝 Negosiasi
-🚢 AI Cargo Pooling
-📦 Joint Shipping
-💳 Split Billing
-🔍 Product Traceability (QR Code)
+---
 
-🏭 Perusahaan
-Perusahaan memperoleh pasokan komoditas melalui Marketplace B2B.
-Fitur
-🔐 Login Google
-📄 Membuat Want To Buy (WTB)
-📬 Menerima Penawaran
-🤝 Negosiasi
-🚚 Tracking Pengiriman
-🔍 Scan QR Product Traceability
+## 🛠️ Teknologi yang Digunakan
 
-🤖 Artificial Intelligence
-Coconeeds memanfaatkan Artificial Intelligence untuk mendukung proses pengambilan keputusan pada berbagai aktivitas dalam rantai nilai komoditas kelapa.
+| Komponen | Teknologi |
+| :--- | :--- |
+| **Framework** | [Next.js](https://nextjs.org/) (App Router) |
+| **Bahasa** | [TypeScript](https://www.typescriptlang.org/) |
+| **Database** | [PostgreSQL](https://www.postgresql.org/) |
+| **ORM** | [Prisma](https://www.prisma.io/) |
+| **Autentikasi** | [NextAuth.js](https://next-auth.js.org/) (v5) |
+| **Styling** | [Tailwind CSS](https://tailwindcss.com/) |
+| **UI Components** | [shadcn/ui](https://ui.shadcn.com/) |
+| **State Management**| [Zustand](https://zustand-demo.pmnd.rs/) |
+| **Form Validation**| [Zod](https://zod.dev/) |
+| **Deployment** | [Vercel](https://vercel.com/) |
+| **Database Hosting**| [Supabase](https://supabase.com/) |
 
-📊 AI Insight
-Memberikan rekomendasi kepada petani mengenai:
-Analisis potensi nilai jual komoditas
-Analisis potensi nilai ekonomi hasil samping
-Rekomendasi sederhana pemanfaatan hasil samping
+---
 
-🚢 AI Cargo Pooling
-Membantu koperasi dalam merencanakan pengiriman bersama melalui:
-Analisis kapasitas muatan
-Rekomendasi konsolidasi pengiriman
-Optimasi Joint Shipping
-Peningkatan utilisasi kapasitas transportasi
+## 🚀 Instalasi & Konfigurasi
 
-♻️ Circular Economy
-Coconeeds menerapkan prinsip Circular Economy dengan mengintegrasikan hasil samping kelapa ke dalam rantai nilai sehingga tetap memiliki nilai ekonomi.
+Untuk menjalankan proyek ini secara lokal, ikuti langkah-langkah berikut:
 
-Jenis hasil samping yang dapat dikelola meliputi:
-🌿 Sabut Kelapa
-🪵 Tempurung Kelapa
-🥥 Air Kelapa
+### 1. Clone Repository
+```bash
+git clone https://github.com/fwrel/coconeed-app.git
+cd coconeed-app
+```
 
-Hasil samping tersebut dapat disetorkan kepada koperasi dan menjadi bagian dari mekanisme Circular Resource Management sehingga tidak berhenti sebagai limbah, tetapi tetap memberikan nilai tambah bagi petani maupun ekosistem.
-
-🎮 Eco Points & Gamification
-Eco Points merupakan mekanisme insentif yang diberikan kepada petani atas aktivitas produktif yang dilakukan dalam ekosistem Coconeeds.
-
-Cara Mendapatkan Eco Points
-👤 Melengkapi profil petani
-🌴 Menambahkan lahan pertama
-🥥 Input hasil panen pertama
-📈 Memperbarui data produksi
-📦 Menyetorkan hasil panen ke koperasi
-♻️ Menyetorkan hasil samping kelapa
-🤝 Batch komoditas berhasil terjual
-Selain Eco Points, sistem juga menyediakan Mission dan Achievement untuk mendorong partisipasi aktif serta konsistensi petani dalam menggunakan aplikasi.
-
-🎁 Reward Eco Points
-Eco Points yang telah terkumpul dapat ditukarkan dengan berbagai manfaat, seperti:
-⚡ Voucher Token PLN
-🛒 Voucher Toko Koperasi
-🍚 Paket Sembako
-🌱 Paket Pertanian
-🚚 Gratis Pickup dari Koperasi
-
-🛠️ Teknologi yang Digunakan
-Komponen
-Teknologi
-Frontend
-Next.js
-Backend
-Next.js App Router
-Bahasa Pemrograman
-TypeScript
-Database
-PostgreSQL
-ORM
-Prisma ORM
-Authentication
-NextAuth.js
-Database Hosting
-Supabase
-Styling
-Tailwind CSS
-UI Components
-shadcn/ui
-State Management
-Zustand
-Form Validation
-Zod
-Deployment
-Vercel
-
-
-🚀 Instalasi [belum]
-Clone Repository
-git clone https://github.com/username/coconeeds.git
-Masuk ke Folder
-cd coconeeds
-Install Dependency
+### 2. Install Dependencies
+```bash
 npm install
-Jalankan Development Server
+```
+
+### 3. Konfigurasi Environment
+Salin file `.env.example` dan isi variabel yang dibutuhkan.
+```bash
+cp .env.example .env
+```
+Variabel penting yang harus diisi:
+-   `DATABASE_URL` & `DIRECT_URL`: String koneksi ke database PostgreSQL Anda (misalnya dari Supabase).
+-   `AUTH_SECRET`: Kunci rahasia untuk NextAuth. Generate menggunakan `openssl rand -base64 32`.
+-   `GOOGLE_CLIENT_ID` & `GOOGLE_CLIENT_SECRET`: Kredensial untuk Google OAuth.
+
+### 4. Sinkronisasi Database
+Terapkan skema Prisma ke database Anda. Perintah ini akan membuat tabel-tabel yang diperlukan.
+```bash
+npx prisma db push
+```
+
+### 5. Seed Data (Opsional)
+Isi database dengan data awal (contohnya admin whitelist) untuk development.
+```bash
+npx prisma db seed
+```
+
+### 6. Jalankan Development Server
+Aplikasi akan berjalan di `http://localhost:3000`.
+```bash
 npm run dev
+```
 
-📂 Struktur Proyek[belum]
-app/
-components/
-hooks/
-lib/
-prisma/
-public/
-store/
-types/
-utils/
-middleware.ts
+---
 
-👨‍💻 Tim Pengembang
-Nama
-M. Farrel Putra R. - Full Stack Developer
-Prospero Phelix - Front End Developer
-Jose Jonathan H - Project Manager & Documentation
+## 📂 Struktur Proyek
 
+Struktur folder utama dalam proyek ini:
 
-📄 Lisensi
-Proyek ini dikembangkan sebagai bagian dari pengembangan inovasi digital dan kompetisi pengembangan perangkat lunak. Seluruh hak cipta dan penggunaan kode mengikuti ketentuan lisensi yang berlaku pada repositori ini.
+```
+.
+├── src/
+│   ├── app/                # Rute utama aplikasi (Next.js App Router)
+│   │   ├── (auth)/         # Grup rute untuk autentikasi
+│   │   ├── admin/          # Panel admin/koperasi
+│   │   ├── app/            # Panel petani
+│   │   └── perusahaan/     # Panel perusahaan B2B
+│   ├── components/         # Komponen UI Reusable
+│   ├── hooks/              # Custom React Hooks
+│   ├── lib/                # Fungsi helper, utilitas, dan konfigurasi (Prisma, Auth)
+│   ├── prisma/             # Skema & seed database
+│   └── store/              # State management (Zustand)
+├── .env.example            # Template variabel environment
+├── middleware.ts           # Middleware untuk proteksi rute
+└── package.json
+```
 
+---
+
+## 👨‍💻 Tim Pengembang
+
+-   **M. Farrel Putra R.** - Full Stack Developer
+-   **Prospero Phelix** - Front End Developer
+-   **Jose Jonathan H.** - Project Manager & Documentation
