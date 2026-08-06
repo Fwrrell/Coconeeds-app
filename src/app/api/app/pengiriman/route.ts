@@ -82,6 +82,18 @@ export async function POST(req: Request) {
       tanggalPanen,
     } = parsed.data;
 
+    // Validate tanggalPanen
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const panenDate = new Date(tanggalPanen);
+    if (panenDate < today) {
+      return NextResponse.json(
+        { error: "Tanggal panen tidak boleh kurang dari tanggal hari ini." },
+        { status: 400 },
+      );
+    }
+
+
     // check available stock
     const stock = await prisma.farmerInventory.findFirst({
       where: {
@@ -114,25 +126,26 @@ export async function POST(req: Request) {
         },
       });
 
-      // 3. create Panen/Shipment record
-      const newShipment = await tx.panen.create({
-        data: {
-          petaniId: session.user.id,
-          kopdesId,
-          type: komoditasType,
-          expectedWeight: beratKg,
-          tanggalPanen: new Date(tanggalPanen),
-          pengirimanMethod,
-          basePricePerKg: hargaDasar,
-          status:
-            pengirimanMethod === "PICKUP"
-              ? PanenStatus.PENDING_PICKUP
-              : PanenStatus.PENDING_DROPOFF,
-          trackingCode: generateTrackingCode(),
-          qrCodePass: `QR-${generateTrackingCode()}`, // simple qr data
-          handoverPin: generatePin(),
-        },
-      });
+          // 3. create Panen/Shipment record
+          const newShipment = await tx.panen.create({
+            data: {
+              petaniId: session.user.id,
+              kopdesId,
+              type: komoditasType,
+              expectedWeight: beratKg,
+              satuan: stock.satuan, // tambahin ini
+              tanggalPanen: new Date(tanggalPanen),
+              pengirimanMethod,
+              basePricePerKg: hargaDasar,
+              status:
+                pengirimanMethod === "PICKUP"
+                  ? PanenStatus.PENDING_PICKUP
+                  : PanenStatus.PENDING_DROPOFF,
+              trackingCode: generateTrackingCode(),
+              qrCodePass: `QR-${generateTrackingCode()}`, // simple qr data
+              handoverPin: generatePin(),
+            },
+          });
       return newShipment;
     });
 

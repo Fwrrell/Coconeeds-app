@@ -190,7 +190,7 @@ export function ChartAreaInteractive({ chartData }: { chartData: ChartDataPoint[
               cursor={false}
               content={
                 <ChartTooltipContent
-                  labelFormatter={(value) => {
+                  labelFormatter={(value: any) => {
                     return new Date(value).toLocaleDateString("id-ID", {
                       month: "long",
                       day: "numeric",

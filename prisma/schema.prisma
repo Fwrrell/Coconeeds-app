@@ -50,6 +50,40 @@ model User {
   ecoPointTxs        EcoPointTx[]        @relation("PetaniEcoPointTx")
   inventory          FarmerInventory[]   @relation("PetaniInventory")
   inventoryMutations InventoryMutation[] @relation("PetaniInventoryMutation")
+  wallet             Wallet?
+
+  // profil perusahaan b2b
+  nib                String?
+  companyPhone       String?
+  companyAddress     String?
+  companyDescription String?
+  monthlyCapacityKg  Float?
+  penanggungJawab    String?
+}
+
+enum WalletTxType {
+  CREDIT
+  DEBIT
+}
+
+model Wallet {
+  id           String     @id @default(cuid())
+  userId       String     @unique
+  user         User       @relation(fields: [userId], references: [id])
+  balance      Float      @default(0)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  transactions WalletTx[]
+}
+
+model WalletTx {
+  id          String       @id @default(cuid())
+  walletId    String
+  wallet      Wallet       @relation(fields: [walletId], references: [id])
+  amount      Float
+  type        WalletTxType
+  description String?
+  createdAt   DateTime     @default(now())
 }
 
 model AdminWhitelist {
@@ -67,9 +101,10 @@ model Kopdes {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  users     User[]
-  panenList Panen[]
-  batchList Batch[]
+  users         User[]
+  panenList     Panen[]
+  batchList     Batch[]
+  negosiasiList Negosiasi[]
 }
 
 model SystemSetting {
@@ -125,6 +160,7 @@ model Panen {
   grade            String?
   moisture         Float?
   basePricePerKg   Float?
+  satuan           String           @default("Kg")
   profitMargin     Float?
   status           PanenStatus      @default(PENDING_PICKUP)
 
@@ -133,6 +169,7 @@ model Panen {
   qrCodePass          String? // data di dalam qr code
   handoverPin         String? // 6 digit pin
   handoverValidatedAt DateTime?
+  pickupScheduledAt   DateTime? // tgl dijemput kopdes (tanpa jam)
 
   batchId   String?
   batch     Batch?   @relation(fields: [batchId], references: [id])
@@ -181,9 +218,11 @@ model WtbListing {
   perusahaanId String
   perusahaan   User      @relation(fields: [perusahaanId], references: [id], onDelete: Cascade)
   komoditas    String // e.g.: KOPRA | SABUT | ...
+  spesifikasi  String?
   targetWeight Float
   maxPrice     Float
   destination  String
+  deadline     DateTime?
   status       WtbStatus @default(OPEN)
   dealPrice    Float?
   createdAt    DateTime  @default(now())
@@ -193,14 +232,25 @@ model WtbListing {
   batches   Batch[]
 }
 
+enum NegosiasiStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  COUNTER_OFFER
+}
+
 model Negosiasi {
-  id           String     @id @default(uuid())
+  id           String          @id @default(uuid())
   wtbId        String
-  wtb          WtbListing @relation(fields: [wtbId], references: [id], onDelete: Cascade)
+  wtb          WtbListing      @relation(fields: [wtbId], references: [id], onDelete: Cascade)
+  kopdesId     String?
+  kopdes       Kopdes?         @relation(fields: [kopdesId], references: [id])
   senderRole   Role
   offeredPrice Float
+  volumeKg     Float?
   note         String?
-  createdAt    DateTime   @default(now())
+  status       NegosiasiStatus @default(PENDING)
+  createdAt    DateTime        @default(now())
 }
 
 enum PengirimanKapalStatus {

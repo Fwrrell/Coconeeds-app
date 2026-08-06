@@ -19,7 +19,7 @@ const leftNav = [
 
 const rightNav = [
   { name: "Kirim", href: "/app/pengiriman", icon: Truck },
-  { name: "Profil", href: "/app/eco-points", icon: User },
+  { name: "Profil", href: "/app/profil", icon: User },
 ];
 
 export const IslandNav = ({ onOpenHarvestModal }: { onOpenHarvestModal?: () => void }) => {

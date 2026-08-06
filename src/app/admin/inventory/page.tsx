@@ -32,8 +32,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Warehouse, Weight, QrCode, ClipboardCheck, Boxes, HardDrive } from "lucide-react";
+import {
+  Warehouse,
+  Weight,
+  QrCode,
+  ClipboardCheck,
+  Boxes,
+  HardDrive,
+  Calendar,
+  KeyRound,
+  CheckCircle2,
+} from "lucide-react";
 import { useAdminStore } from "@/hooks/useAdminStore";
+import { KopdesSelector } from "@/components/kopdes-selector";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 
@@ -42,9 +53,14 @@ type Harvest = {
   id: string;
   date: string;
   farmerName: string;
+  farmerPhone?: string;
   type: string;
   declaredWeight: number;
   status: string;
+  handoverPin?: string;
+  handoverValidatedAt?: string;
+  pickupScheduledAt?: string;
+  pengirimanMethod?: string;
 };
 
 type Batch = {
@@ -69,6 +85,16 @@ export default function AdminInventoryPage() {
   );
   const [isQrDialogOpen, setIsQrDialogOpen] = useState(false);
 
+  // modal jadwalkan penjemputan & validasi pin
+  const [scheduleHarvest, setScheduleHarvest] = useState<Harvest | null>(null);
+  const [isScheduleOpen, setIsScheduleOpen] = useState(false);
+  const [scheduledDate, setScheduledDate] = useState("");
+  const [minPickupDate, setMinPickupDate] = useState("");
+
+  const [pinHarvest, setPinHarvest] = useState<Harvest | null>(null);
+  const [isPinOpen, setIsPinOpen] = useState(false);
+  const [pinInput, setPinInput] = useState("");
+
   // --- Stats Calculation ---
   const totalPendingQc = pendingHarvests.reduce(
     (acc, h) => acc + h.declaredWeight,
@@ -79,13 +105,16 @@ export default function AdminInventoryPage() {
     0,
   );
   const warehouseCapacity = 10000;
-  const capacityPercentage = Math.min((totalInWarehouse / warehouseCapacity) * 100, 100);
+  const capacityPercentage = Math.min(
+    (totalInWarehouse / warehouseCapacity) * 100,
+    100,
+  );
 
   // --- Data Fetching & Submission Logic ---
   const fetchInventory = async () => {
-    if (!activeKopdesId) return;
+    const currentKopdes = activeKopdesId || "ALL";
     try {
-      const res = await fetch(`/api/panen?kopdesId=${activeKopdesId}`);
+      const res = await fetch(`/api/panen?kopdesId=${currentKopdes}`);
       const data = await res.json();
       if (!res.ok) throw new Error("Gagal mengambil data inventory");
       setPendingHarvests(data.pending || []);
@@ -100,14 +129,64 @@ export default function AdminInventoryPage() {
     fetchInventory();
   }, [activeKopdesId]);
 
+  // admin atur tgl penjemputan armada
+  const handleScheduleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!scheduleHarvest) return;
+
+    if (scheduledDate < minPickupDate) {
+      toast.error(
+        `Tanggal penjemputan tidak boleh kurang dari ${new Date(
+          minPickupDate,
+        ).toLocaleDateString("id-ID")}.`,
+      );
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/panen/${scheduleHarvest.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pickupScheduledAt: scheduledDate }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Gagal mengatur jadwal");
+      toast.success("Jadwal penjemputan berhasil disimpan!");
+      setIsScheduleOpen(false);
+      fetchInventory();
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
+  // admin input pin penjemputan
+  const handlePinSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!pinHarvest) return;
+    try {
+      const res = await fetch(`/api/panen/${pinHarvest.id}/validate-pin`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pin: pinInput }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "PIN tidak cocok");
+      toast.success("PIN valid! Status berubah ke QC In Progress.");
+      setIsPinOpen(false);
+      setPinInput("");
+      fetchInventory();
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
   const handleQcSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!selectedHarvest || !activeKopdesId) return;
+    if (!selectedHarvest) return;
 
     const formData = new FormData(event.currentTarget);
     const payload = {
       type: selectedHarvest.type,
-      kopdesId: activeKopdesId,
       panenList: [
         {
           panenId: selectedHarvest.id,
@@ -147,20 +226,6 @@ export default function AdminInventoryPage() {
     setIsQrDialogOpen(true);
   };
 
-  if (!activeKopdesId) {
-    return (
-      <div className="flex h-[80vh] items-center justify-center font-['Quicksand',sans-serif] bg-white">
-        <div className="text-center p-8 border border-gray-200 rounded-md max-w-md">
-          <Warehouse className="mx-auto h-12 w-12 text-[#606C38]" />
-          <h2 className="mt-4 text-xl font-bold text-gray-900">Pilih Kopdes Terlebih Dahulu</h2>
-          <p className="mt-2 text-sm text-gray-500 font-medium">
-            Silakan pilih Kopdes aktif dari header untuk melihat data inventaris stok & QC.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -176,13 +241,15 @@ export default function AdminInventoryPage() {
               <Warehouse className="h-5 w-5" />
             </span>
             <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
-              Manajemen Inventaris
+              Manajemen Inventaris & Penjemputan
             </h1>
           </div>
           <p className="text-sm font-medium text-gray-500 mt-1">
-            Pantau stok gudang komoditas, lakukan verifikasi mutu (QC), dan kelola sertifikasi traceability.
+            Atur jadwal penjemputan armada Kopdes, konfirmasi PIN penyerahan,
+            dan verifikasi mutu (QC).
           </p>
         </div>
+        <KopdesSelector />
       </div>
 
       {/* Stats Bento Grid */}
@@ -190,7 +257,7 @@ export default function AdminInventoryPage() {
         <Card className="bg-white border border-gray-200 rounded-md shadow-none">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-              Total Pending QC
+              Total Pending QC & Penjemputan
             </CardTitle>
             <span className="p-1.5 rounded-md bg-[#DDA15E]/15 text-[#BC6C25]">
               <Weight className="h-4 w-4" />
@@ -201,7 +268,7 @@ export default function AdminInventoryPage() {
               {totalPendingQc.toLocaleString()} kg
             </div>
             <p className="text-xs font-medium text-gray-500 mt-1">
-              {pendingHarvests.length} entri panen menunggu QC
+              {pendingHarvests.length} entri panen di antrean
             </p>
           </CardContent>
         </Card>
@@ -243,7 +310,10 @@ export default function AdminInventoryPage() {
                 Max {warehouseCapacity.toLocaleString()} kg
               </span>
             </div>
-            <Progress value={capacityPercentage} className="mt-2.5 h-2 bg-gray-100" />
+            <Progress
+              value={capacityPercentage}
+              className="mt-2.5 h-2 bg-gray-100"
+            />
           </CardContent>
         </Card>
       </div>
@@ -255,7 +325,7 @@ export default function AdminInventoryPage() {
             value="pending-qc"
             className="data-[state=active]:bg-white data-[state=active]:text-[#606C38] data-[state=active]:shadow-none font-bold text-xs px-4 py-2 rounded-sm transition-all"
           >
-            Pending QC ({pendingHarvests.length})
+            Antrean Penjemputan & QC ({pendingHarvests.length})
           </TabsTrigger>
           <TabsTrigger
             value="in-warehouse"
@@ -275,13 +345,13 @@ export default function AdminInventoryPage() {
                       Nama Petani
                     </TableHead>
                     <TableHead className="text-gray-700 font-bold text-xs uppercase tracking-wider">
-                      Komoditas
+                      Komoditas & Berat
                     </TableHead>
                     <TableHead className="text-gray-700 font-bold text-xs uppercase tracking-wider">
-                      Estimasi Berat
+                      Jadwal Penjemputan
                     </TableHead>
                     <TableHead className="text-gray-700 font-bold text-xs uppercase tracking-wider">
-                      Tanggal Panen
+                      Status Tahapan
                     </TableHead>
                     <TableHead className="text-right text-gray-700 font-bold text-xs uppercase tracking-wider">
                       Aksi
@@ -291,8 +361,12 @@ export default function AdminInventoryPage() {
                 <TableBody>
                   {pendingHarvests.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="h-28 text-center text-sm font-medium text-gray-400">
-                        Tidak ada entri panen yang menunggu proses QC.
+                      <TableCell
+                        colSpan={5}
+                        className="h-28 text-center text-sm font-medium text-gray-400"
+                      >
+                        Tidak ada entri panen yang menunggu penjemputan atau
+                        proses QC.
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -302,30 +376,112 @@ export default function AdminInventoryPage() {
                         className="border-b border-gray-100 odd:bg-white even:bg-[#FEFAE0]/10 hover:bg-gray-50/80 transition-colors"
                       >
                         <TableCell className="font-bold text-gray-900 text-sm">
-                          {harvest.farmerName}
+                          <div>{harvest.farmerName}</div>
+                          <div className="text-[11px] text-gray-400 font-normal">
+                            {harvest.farmerPhone}
+                          </div>
                         </TableCell>
                         <TableCell className="text-sm font-medium text-gray-700">
-                          {harvest.type}
+                          <span className="font-bold text-gray-900">
+                            {harvest.type}
+                          </span>{" "}
+                          — {harvest.declaredWeight.toFixed(1)} kg
                         </TableCell>
-                        <TableCell className="text-sm font-semibold text-gray-900">
-                          {harvest.declaredWeight.toFixed(1)} kg
+                        <TableCell className="text-xs font-medium text-gray-600">
+                          {harvest.pickupScheduledAt ? (
+                            <Badge className="bg-emerald-50 text-emerald-800 border-emerald-200 font-bold text-[11px] shadow-none">
+                              {new Date(
+                                harvest.pickupScheduledAt,
+                              ).toLocaleDateString("id-ID")}
+                            </Badge>
+                          ) : (
+                            <span className="text-gray-400 italic">
+                              Belum Dijadwalkan
+                            </span>
+                          )}
                         </TableCell>
-                        <TableCell className="text-xs font-mono text-gray-500">
-                          {new Date(harvest.date).toLocaleDateString("id-ID", {
-                            day: "numeric",
-                            month: "short",
-                            year: "numeric",
-                          })}
+                        <TableCell>
+                          {harvest.status === "QC_IN_PROGRESS" ? (
+                            <Badge className="bg-blue-100 text-blue-800 border-blue-200 font-bold text-[10px] shadow-none">
+                              Siap Diproses QC
+                            </Badge>
+                          ) : (
+                            <Badge
+                              variant="outline"
+                              className="text-amber-800 border-amber-300 bg-amber-50 font-bold text-[10px] shadow-none"
+                            >
+                              {harvest.status === "PENDING_PICKUP"
+                                ? "Menunggu Penjemputan"
+                                : "Menunggu Setor Mandiri"}
+                            </Badge>
+                          )}
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button
-                            size="sm"
-                            className="bg-[#606C38] hover:bg-[#283618] text-white font-semibold text-xs rounded-md shadow-none px-3 py-1.5"
-                            onClick={() => handleProcessQcClick(harvest)}
-                          >
-                            <ClipboardCheck className="mr-1.5 h-3.5 w-3.5" />
-                            Proses QC
-                          </Button>
+                          <div className="flex items-center justify-end gap-1.5">
+                            {harvest.status === "PENDING_PICKUP" && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="border-amber-300 text-amber-800 hover:bg-amber-50 font-semibold text-xs rounded-md shadow-none px-2.5 py-1"
+                                  onClick={() => {
+                                    const todayStr = new Date().toLocaleDateString(
+                                      "en-CA",
+                                    );
+                                    const farmerDateStr = harvest.date
+                                      ? new Date(harvest.date).toLocaleDateString(
+                                          "en-CA",
+                                        )
+                                      : todayStr;
+                                    
+                                    const minDate =
+                                      farmerDateStr > todayStr
+                                        ? farmerDateStr
+                                        : todayStr;
+                                    
+                                    setMinPickupDate(minDate);
+                                    setScheduleHarvest(harvest);
+                                    setScheduledDate(
+                                      harvest.pickupScheduledAt
+                                        ? new Date(harvest.pickupScheduledAt)
+                                            .toISOString()
+                                            .split("T")[0]
+                                        : minDate 
+                                    );
+                                    setIsScheduleOpen(true);
+                                  }}
+                              >
+                                <Calendar className="mr-1 h-3.5 w-3.5 text-amber-600" />
+                                Jadwalkan
+                              </Button>
+                            )}
+
+                            {(harvest.status === "PENDING_PICKUP" ||
+                              harvest.status === "PENDING_DROPOFF") && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="border-[#606C38] text-[#606C38] hover:bg-[#606C38]/10 font-semibold text-xs rounded-md shadow-none px-2.5 py-1"
+                                onClick={() => {
+                                  setPinHarvest(harvest);
+                                  setIsPinOpen(true);
+                                }}
+                              >
+                                <KeyRound className="mr-1 h-3.5 w-3.5" />
+                                Validasi PIN
+                              </Button>
+                            )}
+
+                            {harvest.status === "QC_IN_PROGRESS" && (
+                              <Button
+                                size="sm"
+                                className="bg-[#606C38] hover:bg-[#283618] text-white font-semibold text-xs rounded-md shadow-none px-3 py-1.5"
+                                onClick={() => handleProcessQcClick(harvest)}
+                              >
+                                <ClipboardCheck className="mr-1.5 h-3.5 w-3.5" />
+                                Proses QC
+                              </Button>
+                            )}
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))
@@ -362,7 +518,10 @@ export default function AdminInventoryPage() {
                 <TableBody>
                   {warehouseBatches.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="h-28 text-center text-sm font-medium text-gray-400">
+                      <TableCell
+                        colSpan={5}
+                        className="h-28 text-center text-sm font-medium text-gray-400"
+                      >
                         Belum ada batch kargo tersimpan di gudang.
                       </TableCell>
                     </TableRow>
@@ -410,7 +569,101 @@ export default function AdminInventoryPage() {
         </TabsContent>
       </Tabs>
 
-      {/* --- Dialogs --- */}
+      {/* --- Dialog 1: Jadwalkan Penjemputan --- */}
+      <Dialog open={isScheduleOpen} onOpenChange={setIsScheduleOpen}>
+        <DialogContent className="sm:max-w-md bg-white border border-gray-200 rounded-md font-['Quicksand',sans-serif]">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold text-gray-900 flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-amber-600" /> Atur Jadwal
+              Penjemputan
+            </DialogTitle>
+            <DialogDescription className="text-xs text-gray-500 font-medium">
+              Pilih tanggal penjemputan armada Kopdes ke lokasi petani (
+              {scheduleHarvest?.farmerName}).
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleScheduleSubmit} className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold text-gray-700">
+                Tanggal Penjemputan
+              </Label>
+              <Input
+                type="date"
+                value={scheduledDate}
+                min={minPickupDate}
+                onChange={(e) => setScheduledDate(e.target.value)}
+                className="h-10 text-xs font-semibold rounded-md border-gray-300"
+                required
+              />
+            </div>
+            <DialogFooter className="pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsScheduleOpen(false)}
+                className="text-xs font-bold"
+              >
+                Batal
+              </Button>
+              <Button
+                type="submit"
+                className="bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shadow-none"
+              >
+                Simpan Jadwal
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* --- Dialog 2: Validasi PIN --- */}
+      <Dialog open={isPinOpen} onOpenChange={setIsPinOpen}>
+        <DialogContent className="sm:max-w-md bg-white border border-gray-200 rounded-md font-['Quicksand',sans-serif]">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold text-gray-900 flex items-center gap-2">
+              <KeyRound className="h-4 w-4 text-[#606C38]" /> Validasi PIN
+              Penyerahan
+            </DialogTitle>
+            <DialogDescription className="text-xs text-gray-500 font-medium">
+              Masukkan 6-digit PIN penyerahan dari HP petani (
+              {pinHarvest?.farmerName}).
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handlePinSubmit} className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold text-gray-700">
+                6-Digit PIN Penyerahan
+              </Label>
+              <Input
+                type="text"
+                placeholder="Contoh: 884219"
+                value={pinInput}
+                onChange={(e) => setPinInput(e.target.value)}
+                className="h-11 text-center text-lg tracking-widest font-extrabold rounded-md border-gray-300"
+                required
+              />
+            </div>
+            <DialogFooter className="pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsPinOpen(false)}
+                className="text-xs font-bold"
+              >
+                Batal
+              </Button>
+              <Button
+                type="submit"
+                className="bg-[#606C38] hover:bg-[#283618] text-white text-xs font-bold shadow-none"
+              >
+                Konfirmasi & Lanjut QC
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* --- Dialog 3 & 4: QC & QR --- */}
       <QcDialog
         isOpen={isQcDialogOpen}
         onOpenChange={setIsQcDialogOpen}
@@ -442,19 +695,22 @@ const QcDialog = ({
   <Dialog open={isOpen} onOpenChange={onOpenChange}>
     <DialogContent className="sm:max-w-[425px] bg-white border border-gray-200 rounded-md shadow-none font-['Quicksand',sans-serif]">
       <DialogHeader>
-        <DialogTitle className="text-lg font-bold text-gray-900">Proses Quality Control</DialogTitle>
+        <DialogTitle className="text-lg font-bold text-gray-900">
+          Proses Quality Control
+        </DialogTitle>
         <DialogDescription className="text-xs font-medium text-gray-500">
           Input penimbangan aktual dan grade mutu panen dari{" "}
-          <span className="font-bold text-gray-800">
-            {harvest?.farmerName}
-          </span>
+          <span className="font-bold text-gray-800">{harvest?.farmerName}</span>
           .
         </DialogDescription>
       </DialogHeader>
       <form onSubmit={onSubmit}>
         <div className="grid gap-4 py-4">
           <div className="space-y-1.5">
-            <Label htmlFor="actualWeight" className="text-xs font-bold text-gray-700">
+            <Label
+              htmlFor="actualWeight"
+              className="text-xs font-bold text-gray-700"
+            >
               Berat Penimbangan Timbangan (kg)
             </Label>
             <Input
@@ -472,7 +728,7 @@ const QcDialog = ({
               Hasil Klasifikasi Grade Mutu
             </Label>
             <Select name="grade" required>
-              <SelectTrigger className="border-gray-300 focus:ring-[#606C38] rounded-md text-sm">
+              <SelectTrigger className="w-full border-gray-300 focus:ring-[#606C38] rounded-md text-sm">
                 <SelectValue placeholder="Pilih grade mutu..." />
               </SelectTrigger>
               <SelectContent className="font-['Quicksand',sans-serif]">
@@ -520,7 +776,8 @@ const QrDialog = ({
           Sertifikat ESG Traceability
         </DialogTitle>
         <DialogDescription className="text-xs font-medium text-gray-500">
-          Pindai QR code untuk memverifikasi asal-usul & riwayat lengkap batch ini.
+          Pindai QR code untuk memverifikasi asal-usul & riwayat lengkap batch
+          ini.
         </DialogDescription>
       </DialogHeader>
       {batch && (
@@ -548,4 +805,3 @@ const QrDialog = ({
     </DialogContent>
   </Dialog>
 );
-

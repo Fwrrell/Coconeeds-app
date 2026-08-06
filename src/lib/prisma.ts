@@ -18,21 +18,23 @@ const sslConfig = isLocal
       rejectUnauthorized: process.env.DB_VERIFY_SSL === "true",
     };
 
-// setup pool dari Postgres
+// paksa cache global & limit pool 5 biar koneksi supabase ga jebol (emaxconnsession)
 const pool =
   globalForPrisma.pgPool ??
   new Pool({
     connectionString,
     ssl: sslConfig,
+    max: 5,
+    connectionTimeoutMillis: 5000,
   });
 
 // adapter prisma untuk postgresql
 const adapter = new PrismaPg(pool);
 
 export const prisma = globalForPrisma.prisma ?? new PrismaClient({ adapter });
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.pgPool = pool;
-  globalForPrisma.prisma = prisma;
-}
+
+// simpen ke globalThis tanpa pandang prod/dev biar pas lambda warm ga bikin pool baru
+globalForPrisma.pgPool = pool;
+globalForPrisma.prisma = prisma;
 
 export default prisma;

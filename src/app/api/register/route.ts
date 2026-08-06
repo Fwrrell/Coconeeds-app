@@ -33,24 +33,18 @@ export async function POST(req: Request) {
     
     const hashedPin = await bcrypt.hash(pin, 10);
     
-    let isVerified = false;
-    if (session?.user.role === 'ADMIN') {
-        isVerified = true;
-    } else {
-        const setting = await prisma.systemSetting.findUnique({
-            where: { id: 'global_config'}
-        });
-        isVerified = setting?.autoVerifyNewUser ?? false;
-    }
+    // petani ga bs pilih kopdes sndiri, ntar diassign admin waktu approve
+    const assignedKopdesId = session?.user?.role === 'ADMIN' ? (kopdesId || null) : null;
+    const isVerified = session?.user?.role === 'ADMIN';
 
-    // Kembali ke cara normal, karena database sudah benar
     const newUser = await prisma.user.create({
       data: {
         name,
         phoneNumber,
         pin: hashedPin,
-        isVerified: isVerified,
-        kopdesId: kopdesId || null,
+        isVerified: isVerified || false,
+        approvalStatus: isVerified ? "APPROVED" : "PENDING",
+        kopdesId: assignedKopdesId,
       },
     });
 

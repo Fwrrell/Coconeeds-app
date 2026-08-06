@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import {
   LayoutDashboard,
@@ -13,6 +13,8 @@ import {
   PlusCircle,
   Send,
   CheckCircle2,
+  Loader2,
+  User,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,6 +36,7 @@ import {
 } from "@/components/ui/dialog";
 import Image from "next/image";
 import { getAvatarInitials } from "@/lib/utils";
+import { getDefaultSatuan } from "@/lib/satuan";
 
 // nav item list buat petani kebun
 const FARMER_NAV_ITEMS = [
@@ -52,7 +55,11 @@ export function FarmerSidebar({
   setIsHarvestModalOpen?: (open: boolean) => void;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const { data: session } = useSession();
+
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const [internalOpen, setInternalOpen] = useState(false);
   const isModalOpen = externalOpen !== undefined ? externalOpen : internalOpen;
@@ -63,14 +70,76 @@ export function FarmerSidebar({
   // dynamic user data n avatar initials logic
   const userName = session?.user?.name || "Pak Agus";
   const avatarInitials = getAvatarInitials(userName);
-  const kopdesName = "Kopdes Indonesia";
+  const [userProfile, setUserProfile] = useState<any>(null);
 
   // form state panen komoditas
   const [kategori, setKategori] = useState("Produk Primer");
   const [jenisProduk, setJenisProduk] = useState("Kelapa Utuh");
   const [jumlah, setJumlah] = useState(500);
-  const [satuan, setSatuan] = useState("Kg");
-  const [lahanSelected, setLahanSelected] = useState("Kebun Blok A Utara");
+  const [lahanSelected, setLahanSelected] = useState<string>("");
+
+  // inventory stock state
+  const [stocks, setStocks] = useState<any[]>([]);
+
+  // real lahan data state
+  const [lahanList, setLahanList] = useState<any[]>([]);
+  const [isLoadingLahan, setIsLoadingLahan] = useState(false);
+
+  // fetch data lahan user & inventory stocks sblm render modal
+  const fetchModalData = useCallback(async () => {
+    setIsLoadingLahan(true);
+    try {
+      const [lahanRes, inventoryRes] = await Promise.all([
+        fetch("/api/app/lahan"),
+        fetch("/api/app/inventori"),
+      ]);
+
+      if (lahanRes.ok) {
+        const data = await lahanRes.json();
+        setLahanList(data);
+        if (data && data.length > 0) {
+          setLahanSelected(data[0].id);
+        }
+      }
+      if (inventoryRes.ok) {
+        const { stocks } = await inventoryRes.json();
+        setStocks(stocks);
+      }
+    } catch (err) {
+      console.error("Gagal load data modal:", err);
+    } finally {
+      setIsLoadingLahan(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isModalOpen) {
+      const timer = setTimeout(() => {
+        fetchModalData();
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+  }, [isModalOpen, fetchModalData]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const res = await fetch("/api/app/profil");
+        if (res.ok) {
+          const data = await res.json();
+          setUserProfile(data);
+        }
+      } catch (err: any) {
+        setError(err.message);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
 
   // filter options produk berdasarkan kategori komoditas
   const getJenisOptions = () => {
@@ -80,7 +149,7 @@ export function FarmerSidebar({
     if (kategori === "Produk Olahan") {
       return [
         "Minyak Kelapa",
-        "VCO (Virgin Coconut Oil)",
+        "Minyak Kelapa Murni (VCO)",
         "Briket Tempurung",
         "Arang Kelapa",
       ];
@@ -88,14 +157,60 @@ export function FarmerSidebar({
     return ["Tempurung Kelapa", "Sabut Kelapa", "Air Kelapa"];
   };
 
-  const handleHarvestSubmit = (e: React.FormEvent) => {
+  const handleHarvestSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setModalSuccess(true);
-    setTimeout(() => {
-      setModalSuccess(false);
-      setModalOpen(false);
-    }, 1200);
+    try {
+      const selectedLahanObj = lahanList.find((l) => l.id === lahanSelected);
+      const keteranganText = selectedLahanObj
+        ? `Panen dari ${selectedLahanObj.namaLahan}`
+        : "Penambahan stok panen";
+
+      const mappedKategori =
+        kategori === "Produk Primer" || kategori === "PRODUK_PRIMER"
+          ? "PRODUK_PRIMER"
+          : kategori === "Produk Olahan" || kategori === "PRODUK_OLAHAN"
+            ? "PRODUK_OLAHAN"
+            : "PRODUK_SAMPINGAN";
+
+      // auto-derive unit from existing stock, or default to 'Kg'
+      const derivedSatuan =
+        stocks.find((s) => s.jenisProduk === jenisProduk)?.satuan ||
+        getDefaultSatuan(jenisProduk);
+
+      const res = await fetch("/api/app/inventori", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          kategori: mappedKategori,
+          jenisProduk,
+          jumlah: Number(jumlah),
+          satuan: derivedSatuan,
+          keterangan: keteranganText,
+        }),
+      });
+
+      if (res.ok) {
+        setModalSuccess(true);
+        // refresh data background biar UI langsung update
+        router.refresh();
+
+        setTimeout(() => {
+          setModalSuccess(false);
+          setModalOpen(false);
+        }, 1200);
+      } else {
+        const errorData = await res.json();
+        console.error("Gagal nyimpen data ke server. Detail:", errorData);
+      }
+    } catch (err) {
+      console.error("Error submitting panen:", err);
+    }
   };
+
+  const kopdesLabel =
+    userProfile?.isVerified && userProfile?.kopdes?.name
+      ? `${userProfile.kopdes.name}`
+      : "Akun belum terverifikasi";
 
   return (
     <>
@@ -155,7 +270,10 @@ export function FarmerSidebar({
         </nav>
 
         {/* Footer Profile Connected to Auth Session */}
-        <div className="p-4 border-t border-gray-100 bg-gray-50/50 flex items-center justify-between">
+        <Link
+          href="/app/profil"
+          className="p-4 border-t border-gray-100 bg-gray-50/50 flex items-center justify-between hover:bg-gray-100/60 transition-colors"
+        >
           <div className="flex items-center gap-2.5 min-w-0">
             <div className="h-9 w-9 rounded-full bg-[#606C38] text-white flex items-center justify-center text-xs font-extrabold shrink-0">
               {avatarInitials}
@@ -165,11 +283,11 @@ export function FarmerSidebar({
                 {userName}
               </p>
               <p className="text-[10px] text-gray-500 font-semibold truncate">
-                {kopdesName}
+                {kopdesLabel}
               </p>
             </div>
           </div>
-        </div>
+        </Link>
       </aside>
 
       {/* GLOBAL MODAL: CATAT HASIL & PENAMBAHAN INVENTORI */}
@@ -195,34 +313,56 @@ export function FarmerSidebar({
                 Stok Panen Berhasil Disimpan!
               </h3>
               <p className="text-xs font-medium text-gray-500">
-                Data {jenisProduk} sebanyak {jumlah} {satuan} telah ditambahkan
-                ke Gudang.
+                Data {jenisProduk} sebanyak {jumlah}{" "}
+                {stocks.find((s) => s.jenisProduk === jenisProduk)?.satuan ||
+                  getDefaultSatuan(jenisProduk)}{" "}
+                telah ditambahkan ke Gudang.
               </p>
             </div>
           ) : (
             <form onSubmit={handleHarvestSubmit} className="space-y-4 py-2">
-              {/* Field 1: Pilih Lahan */}
+              {/* Field 1: Pilih Lahan (Wired to Real API Data) */}
               <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-gray-700">
-                  Pilih Lahan Kebun
-                </Label>
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-bold text-gray-700">
+                    Pilih Lahan Kebun
+                  </Label>
+                  {isLoadingLahan && (
+                    <Loader2 className="h-3 w-3 animate-spin text-[#606C38]" />
+                  )}
+                </div>
                 <Select
                   value={lahanSelected}
                   onValueChange={(val) => val && setLahanSelected(val)}
+                  disabled={isLoadingLahan || lahanList.length === 0}
                 >
-                  <SelectTrigger className="h-11 rounded-xl border-gray-300 text-xs">
-                    <SelectValue placeholder="Pilih Lahan" />
-                  </SelectTrigger>
+                  <SelectTrigger className="w-full h-11 rounded-xl border-gray-300 text-xs">
+                    <SelectValue placeholder="Pilih Lahan">
+                      {lahanSelected && lahanList.length > 0
+                        ? (() => {
+                            const selected = lahanList.find(
+                              (lh: any) => lh.id === lahanSelected,
+                            );
+                            return selected
+                              ? `${selected.namaLahan} (${selected.luasM2} m²)`
+                              : "Pilih Lahan";
+                          })()
+                        : "Pilih Lahan"}
+                    </SelectValue>
+                  </SelectTrigger>{" "}
                   <SelectContent className="font-['Quicksand',sans-serif]">
-                    <SelectItem value="Kebun Blok A Utara">
-                      Kebun Kelapa Lahan Utara B (500 m²)
-                    </SelectItem>
-                    <SelectItem value="Kebun Blok Selatan">
-                      Kebun Kelapa Lahan Selatan (100 m²)
-                    </SelectItem>
-                    <SelectItem value="Kebun Blok C">
-                      Kebun Kelapa Lahan Blok C (300 m²)
-                    </SelectItem>
+                    {/* klo blm ada lahan kasi tau user */}
+                    {lahanList.length > 0 ? (
+                      lahanList.map((lh: any) => (
+                        <SelectItem key={lh.id} value={lh.id}>
+                          {lh.namaLahan} ({lh.luasM2} m²)
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="none" disabled>
+                        Belum ada lahan, tambah dulu di menu Lahan
+                      </SelectItem>
+                    )}
                   </SelectContent>
                 </Select>
               </div>
@@ -246,18 +386,14 @@ export function FarmerSidebar({
                     setJenisProduk(opts);
                   }}
                 >
-                  <SelectTrigger className="h-11 rounded-xl border-gray-300 text-xs">
+                  <SelectTrigger className="w-full h-11 rounded-xl border-gray-300 text-xs">
                     <SelectValue placeholder="Kategori" />
                   </SelectTrigger>
                   <SelectContent className="font-['Quicksand',sans-serif]">
-                    <SelectItem value="Produk Primer">
-                      Produk Primer (Hasil Panen Kebun)
-                    </SelectItem>
-                    <SelectItem value="Produk Olahan">
-                      Produk Olahan (Nilai Tambah)
-                    </SelectItem>
+                    <SelectItem value="Produk Primer">Produk Primer</SelectItem>
+                    <SelectItem value="Produk Olahan">Produk Olahan</SelectItem>
                     <SelectItem value="Produk Sampingan">
-                      Produk Sampingan (Ekstra Profit)
+                      Produk Sampingan
                     </SelectItem>
                   </SelectContent>
                 </Select>
@@ -272,7 +408,7 @@ export function FarmerSidebar({
                   value={jenisProduk}
                   onValueChange={(val) => val && setJenisProduk(val)}
                 >
-                  <SelectTrigger className="h-11 rounded-xl border-gray-300 text-xs">
+                  <SelectTrigger className="w-full h-11 rounded-xl border-gray-300 text-xs">
                     <SelectValue placeholder="Jenis Produk" />
                   </SelectTrigger>
                   <SelectContent className="font-['Quicksand',sans-serif]">
@@ -285,44 +421,29 @@ export function FarmerSidebar({
                 </Select>
               </div>
 
-              {/* Field 4: Jumlah & Satuan */}
-              <div className="grid grid-cols-3 gap-2">
-                <div className="col-span-2 space-y-1.5">
-                  <Label className="text-xs font-bold text-gray-700">
-                    Jumlah Panen
-                  </Label>
-                  <Input
-                    type="number"
-                    placeholder="500"
-                    value={jumlah}
-                    onChange={(e) => setJumlah(Number(e.target.value))}
-                    className="h-11 rounded-xl border-gray-300 text-xs font-bold"
-                    required
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-bold text-gray-700">
-                    Satuan
-                  </Label>
-                  <Select
-                    value={satuan}
-                    onValueChange={(val) => val && setSatuan(val)}
-                  >
-                    <SelectTrigger className="h-11 rounded-xl border-gray-300 text-xs">
-                      <SelectValue placeholder="Satuan" />
-                    </SelectTrigger>
-                    <SelectContent className="font-['Quicksand',sans-serif]">
-                      <SelectItem value="Kg">Kg</SelectItem>
-                      <SelectItem value="Liter">Liter</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+              {/* Field 4: Jumlah */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-gray-700">
+                  Jumlah Panen (
+                  {stocks.find((s) => s.jenisProduk === jenisProduk)?.satuan ||
+                    getDefaultSatuan(jenisProduk)}
+                  )
+                </Label>
+                <Input
+                  type="number"
+                  placeholder="500"
+                  value={jumlah}
+                  onChange={(e) => setJumlah(Number(e.target.value))}
+                  className="h-11 rounded-xl border-gray-300 text-xs font-bold"
+                  required
+                />
               </div>
 
               {/* Submit CTA */}
               <DialogFooter className="pt-2">
                 <Button
                   type="submit"
+                  disabled={lahanList.length === 0}
                   className="w-full bg-[#606C38] hover:bg-[#283618] text-white text-xs font-bold h-11 rounded-xl shadow-none flex items-center justify-center gap-2"
                 >
                   <Send className="h-4 w-4" /> Simpan ke Gudang

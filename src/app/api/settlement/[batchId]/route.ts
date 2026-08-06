@@ -3,12 +3,12 @@ import { PanenStatus } from "@prisma/client";
 import prisma from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 
+// release pembayaran b2b & update status batch ke DELIVERED
 export async function POST(
   req: Request,
   { params }: { params: Promise<{ batchId: string }> },
 ) {
   try {
-    // auth check
     const session = await auth();
     if (!session || !session.user) {
       return NextResponse.json(
@@ -17,7 +17,6 @@ export async function POST(
       );
     }
 
-    // role check: only ADMIN or PERUSAHAAN can settle
     if (session.user.role !== "ADMIN" && session.user.role !== "PERUSAHAAN") {
       return NextResponse.json(
         { error: "Anda tidak memiliki akses untuk melakukan ini." },
@@ -27,7 +26,6 @@ export async function POST(
 
     const { batchId } = await params;
 
-
     if (!batchId) {
       return NextResponse.json(
         { error: "Batch ID wajib disertakan." },
@@ -35,7 +33,6 @@ export async function POST(
       );
     }
 
-    // Authorization check: PERUSAHAAN can only settle their own batch
     if (session.user.role === "PERUSAHAAN") {
       const batch = await prisma.batch.findUnique({
         where: { id: batchId },
@@ -43,21 +40,28 @@ export async function POST(
       });
 
       if (!batch) {
-        return NextResponse.json({ error: "Batch tidak ditemukan." }, { status: 404 });
+        return NextResponse.json(
+          { error: "Batch tidak ditemukan." },
+          { status: 404 },
+        );
       }
 
-      if (!batch.wtbListing || batch.wtbListing.perusahaanId !== session.user.id) {
+      if (
+        !batch.wtbListing ||
+        batch.wtbListing.perusahaanId !== session.user.id
+      ) {
         return NextResponse.json(
-          { error: "Anda tidak memiliki izin untuk melakukan settlement pada batch ini." },
+          {
+            error:
+              "Anda tidak memiliki izin untuk melakukan settlement pada batch ini.",
+          },
           { status: 403 },
         );
       }
     }
 
-
-    // execute transaction untuk memastikan semua status berubah semua
+    // execute transaction untuk memastikan semua status berubah menjadi DELIVERED
     const result = await prisma.$transaction(async (tx) => {
-      // update status batch jadi delivered
       const updatedBatch = await tx.batch.update({
         where: { id: batchId },
         data: {
@@ -66,7 +70,6 @@ export async function POST(
         },
       });
 
-      // ubah juga semua status panen yang ada di dalam batch menjadi delivered
       await tx.panen.updateMany({
         where: { batchId: batchId },
         data: { status: PanenStatus.DELIVERED },
@@ -76,8 +79,12 @@ export async function POST(
     });
 
     return NextResponse.json(
-      { message: "Settlement berhasil, barang telah diterima.", data: result },
-      { status: 201 },
+      {
+        message:
+          "Settlement pembayaran berhasil, barang telah diterima & pembayaran dirilis ke Kopdes.",
+        data: result,
+      },
+      { status: 200 },
     );
   } catch (err) {
     console.error("Settlement POST /api/settlement:", err);

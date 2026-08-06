@@ -1,6 +1,8 @@
 "use client";
 
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { signIn } from "next-auth/react";
 import { buttonVariants } from "@/components/ui/button";
@@ -20,7 +22,7 @@ import { Input } from "@/components/ui/input";
 type RoleType = "PETANI" | "PERUSAHAAN";
 type LoginStep = "NOMOR" | "PIN";
 
-export default function LoginPage() {
+function LoginContent() {
   const [role, setRole] = useState<RoleType>("PETANI");
 
   // State petani
@@ -31,6 +33,15 @@ export default function LoginPage() {
   // Global state
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // tangkep error dr callback auth js trs kluarin toast
+  const searchParams = useSearchParams();
+  useEffect(() => {
+    const errParam = searchParams?.get("error");
+    if (errParam === "PendingApproval") {
+      toast.error("Akun Anda terdaftar sebagai Mitra dan sedang menunggu verifikasi Admin.");
+    }
+  }, [searchParams]);
 
   const inputPinRef = useRef<HTMLInputElement>(null);
   const pinArray = Array.from({ length: 6 });
@@ -246,7 +257,7 @@ export default function LoginPage() {
                 disabled={isLoading}
                 onClick={async () => {
                   setIsLoading(true);
-                  await signIn("google", { callbackUrl: "/app" });
+                  await signIn("google", { callbackUrl: "/perusahaan" });
                 }}
                 className={cn(
                   buttonVariants({
@@ -347,5 +358,14 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// wajib dibungkus suspense klo pake search params di next 15/16 biar vercel ga ngamuk
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="flex justify-center p-8 text-xs font-bold text-gray-500">Memuat halaman login...</div>}>
+      <LoginContent />
+    </Suspense>
   );
 }

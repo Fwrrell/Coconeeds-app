@@ -1,31 +1,94 @@
-import { NextResponse } from "next/server";
-import { auth } from "./lib/auth";
-import { prisma } from "./lib/prisma";
-import { Role, ApprovalStatus } from "@prisma/client";
+import { NextResponse, type NextRequest } from "next/server";
+import { getToken } from "next-auth/jwt";
 
-// list route yang gaboleh di akses kalo udah login
 const authRoutes = ["/login", "/register"];
-
-// default route setelah login (jika dari authRoutes)
 const DEFAULT_REDIRECT = "/";
 
-export default auth(async (req) => {
-  const { nextUrl } = req;
-  const isLoggedIn = !!req.auth;
-  const userRole = req.auth?.user?.role;
-  const userStatus = req.auth?.user?.status;
+// Helper function to decode JWT in Edge Middleware for NextAuth v5 / Auth.js
+// correctly handling production secure cookies (__Secure-authjs.session-token, __Secure-next-auth.session-token)
+async function getAuthToken(request: NextRequest) {
+  const secret = process.env.AUTH_SECRET;
+  if (!secret) return null;
+
+  // 1. Try standard auto-detection
+  let token = await getToken({ req: request, secret });
+  if (token) return token;
+
+  const isSecure =
+    process.env.NODE_ENV === "production" ||
+    request.nextUrl.protocol === "https:" ||
+    request.headers.get("x-forwarded-proto") === "https";
+
+  // 2. Explicit check for __Secure-authjs.session-token (NextAuth v5 default on HTTPS)
+  if (request.cookies.has("__Secure-authjs.session-token") || isSecure) {
+    token = await getToken({
+      req: request,
+      secret,
+      secureCookie: true,
+      cookieName: "__Secure-authjs.session-token",
+      salt: "__Secure-authjs.session-token",
+    });
+    if (token) return token;
+  }
+
+  // 3. Explicit check for authjs.session-token (NextAuth v5 default on HTTP)
+  if (request.cookies.has("authjs.session-token")) {
+    token = await getToken({
+      req: request,
+      secret,
+      secureCookie: false,
+      cookieName: "authjs.session-token",
+      salt: "authjs.session-token",
+    });
+    if (token) return token;
+  }
+
+  // 4. Explicit check for __Secure-next-auth.session-token (Legacy NextAuth default on HTTPS)
+  if (request.cookies.has("__Secure-next-auth.session-token")) {
+    token = await getToken({
+      req: request,
+      secret,
+      secureCookie: true,
+      cookieName: "__Secure-next-auth.session-token",
+      salt: "__Secure-next-auth.session-token",
+    });
+    if (token) return token;
+  }
+
+  // 5. Explicit check for next-auth.session-token (Legacy NextAuth default on HTTP)
+  if (request.cookies.has("next-auth.session-token")) {
+    token = await getToken({
+      req: request,
+      secret,
+      secureCookie: false,
+      cookieName: "next-auth.session-token",
+      salt: "next-auth.session-token",
+    });
+    if (token) return token;
+  }
+
+  return null;
+}
+
+export async function proxy(request: NextRequest) {
+  const { nextUrl } = request;
+
+  const token = await getAuthToken(request);
+
+  const isLoggedIn = !!token;
+  const userRole = token?.role;
+  const userStatus = token?.approvalStatus;
 
   const isApiAuthRoute = nextUrl.pathname.startsWith("/api/auth");
   const isAuthRoute = authRoutes.includes(nextUrl.pathname);
   const isAdminLoginRoute = nextUrl.pathname === "/admin/login";
   const isAdminRoute = nextUrl.pathname.startsWith("/admin");
+  const isPerusahaanRoute = nextUrl.pathname.startsWith("/perusahaan");
 
-  // Allow all API routes to be accessed
   if (isApiAuthRoute) {
     return NextResponse.next();
   }
 
-  // Handle redirection for logged-in users trying to access login/register pages
   if (isAuthRoute) {
     if (isLoggedIn) {
       return NextResponse.redirect(new URL(DEFAULT_REDIRECT, nextUrl));
@@ -33,58 +96,69 @@ export default auth(async (req) => {
     return NextResponse.next();
   }
 
-  // Handle admin routes
   if (isAdminRoute) {
-    let juriAccess = false;
-    try {
-      // The proxy runs in Node.js runtime in Next 16, so DB access is safe.
-      const setting = await prisma.systemSetting.findUnique({
-        where: { id: "global_config" },
-        select: { juriAccess: true },
-      });
-      juriAccess = setting?.juriAccess ?? false;
-    } catch (e) {
-      // Failsafe: if DB is down, default to secure mode.
-      console.error("Proxy failed to read juriAccess setting:", e);
-      juriAccess = false;
-    }
+    const isApprovedAdmin = userRole === "ADMIN" && userStatus === "APPROVED";
 
-    const isApprovedAdmin = userRole === Role.ADMIN && userStatus === ApprovalStatus.APPROVED;
-    const canAccessAdmin = isApprovedAdmin || (juriAccess && isLoggedIn);
-
-    // Special handling for the admin login page
     if (isAdminLoginRoute) {
-      if (canAccessAdmin) {
-        // If an authorized user is already logged in, redirect them to the dashboard
+      if (isApprovedAdmin) {
         return NextResponse.redirect(new URL("/admin", nextUrl));
       }
-      // Otherwise, allow access to the login page
       return NextResponse.next();
     }
 
-    // For all other admin routes, enforce access rules
     if (!isLoggedIn) {
       return NextResponse.redirect(new URL("/admin/login", nextUrl));
     }
-    if (!canAccessAdmin) {
-      // If logged in but not authorized, reject access by redirecting to home
+    if (!isApprovedAdmin) {
       return NextResponse.redirect(new URL("/", nextUrl));
     }
 
-    // If all checks pass, allow access
     return NextResponse.next();
   }
 
-  // Fallback for other protected routes.
+  // guard route perusahaan: hrus login & role PERUSAHAAN + APPROVED
+  if (isPerusahaanRoute) {
+    if (!isLoggedIn) {
+      return NextResponse.redirect(new URL("/login", nextUrl));
+    }
+    // jika sudah login tapi bukan perusahaan, redirect sesuai role
+    if (userRole === "PETANI") {
+      return NextResponse.redirect(new URL("/app", nextUrl));
+    }
+    if (userRole === "ADMIN") {
+      return NextResponse.redirect(new URL("/admin", nextUrl));
+    }
+
+    const isApprovedCompany =
+      userRole === "PERUSAHAAN" && userStatus === "APPROVED";
+    if (!isApprovedCompany) {
+      return NextResponse.redirect(
+        new URL("/login?error=PendingApproval", nextUrl),
+      );
+    }
+    return NextResponse.next();
+  }
+
   const isProtectedRoute = nextUrl.pathname.startsWith("/app");
-  if (isProtectedRoute && !isLoggedIn) {
-    return NextResponse.redirect(new URL("/login", nextUrl));
+  if (isProtectedRoute) {
+    if (!isLoggedIn) {
+      return NextResponse.redirect(new URL("/login", nextUrl));
+    }
+    // jika sudah login tapi bukan petani, redirect sesuai role
+    if (userRole === "PERUSAHAAN") {
+      return NextResponse.redirect(new URL("/perusahaan", nextUrl));
+    }
+    if (userRole === "ADMIN") {
+      return NextResponse.redirect(new URL("/admin", nextUrl));
+    }
   }
 
   return NextResponse.next();
-});
+}
 
-// regex untuk akses ke suatu file (gambar) yang gaperlu protection
+export default proxy;
+
 export const config = {
   matcher: ["/((?!api|_next/static|_next/image|favicon.ico|.*\\.png$).*)"],
 };
+
