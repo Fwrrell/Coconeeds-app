@@ -69,10 +69,19 @@ export function NavbarLanding() {
             </div>
             <button
               onClick={() => setIsSidebarOpen(false)}
-              className="p-2  rounded-full text-white bg-[#609D7F] transition-colors"
+              className="p-2 rounded-full text-white bg-[#609D7F] transition-colors"
             >
-              <X className="w-3 h-3" />
+              <X className="w-4 h-4" />
             </button>
+          </div>
+          <div className="p-4 flex flex-col gap-3">
+            <Link
+              href="/app"
+              onClick={() => setIsSidebarOpen(false)}
+              className="px-4 py-2.5 text-center font-semibold text-sm bg-[#606C38] rounded-lg text-white"
+            >
+              Farmer Portal
+            </Link>
           </div>
         </div>
       </div>
