@@ -82,16 +82,27 @@ export default function LahanPage() {
   useEffect(() => {
     fetchLahan();
   }, [fetchLahan]);
-  //register dialog action ke tourcontroller
+  // Dialog action callbacks for tour controller
+  const openTambahDialog = useCallback(() => {
+    setIsOpenAdd(true);
+  }, []);
+
+  const closeTambahDialog = useCallback(() => {
+    setIsOpenAdd(false);
+  }, []);
+
+  const openDetailDialog = useCallback(() => {
+    if (lahanList.length > 0) {
+      setSelectedLahan(lahanList[0]);
+    }
+  }, [lahanList]);
+
+  // register dialog action ke tourcontroller
   useEffect(() => {
     registerDialog("tambah-lahan", openTambahDialog);
-
     registerDialog("close-tambah-lahan", closeTambahDialog);
-
     registerDialog("detail-lahan", openDetailDialog);
-
-    // registerDialog("edit-lahan", openEditDialog);
-  }, [lahanList]);
+  }, [openTambahDialog, closeTambahDialog, openDetailDialog]);
   // kalkulasi statistik dari data
   const lahanStats = useMemo(() => {
     const totalLuas = lahanList.reduce((sum, lahan) => sum + lahan.luasM2, 0);

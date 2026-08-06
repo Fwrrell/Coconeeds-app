@@ -466,7 +466,7 @@ export function FarmerSidebar({
               </div>
 
               {/* Field 4: Jumlah */}
-              <div className="space-y-1.5">
+              <div className="space-y-1.5" data-tour="form-jumlah-produk">
                 <Label className="text-xs font-bold text-gray-700">
                   Jumlah Panen (
                   {stocks.find((s) => s.jenisProduk === jenisProduk)?.satuan ||
