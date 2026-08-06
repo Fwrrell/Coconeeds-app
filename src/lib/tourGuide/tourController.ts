@@ -117,14 +117,27 @@ export function destroyTour(getDriver?: () => Driver | null): void {
   }
 }
 
+/**
+ * Mengembalikan selector yang sesuai tergantung tampilan Desktop vs Mobile (Island Nav)
+ */
+export function getNavSelector(
+  desktopSelector: string,
+  mobileSelector: string,
+): string {
+  if (typeof window !== "undefined" && window.innerWidth < 768) {
+    return mobileSelector;
+  }
+  return desktopSelector;
+}
+
 export function attachSidebarMenuListener(
   menuSelector: string,
   targetPath: string,
   getDriver: () => Driver | null,
   isFinal?: boolean,
 ): () => void {
-  const menuElement = document.querySelector(menuSelector);
-  if (!menuElement) return () => {};
+  const menuElements = document.querySelectorAll(menuSelector);
+  if (!menuElements || menuElements.length === 0) return () => {};
 
   const handleClick = () => {
     if (isFinal) {
@@ -138,9 +151,9 @@ export function attachSidebarMenuListener(
     }
   };
 
-  menuElement.addEventListener("click", handleClick);
+  menuElements.forEach((el) => el.addEventListener("click", handleClick));
   return () => {
-    menuElement.removeEventListener("click", handleClick);
+    menuElements.forEach((el) => el.removeEventListener("click", handleClick));
   };
 }
 

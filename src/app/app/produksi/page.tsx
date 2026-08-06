@@ -44,6 +44,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { registerDialog } from "@/lib/tourGuide/tourController";
 // ganti pke type inline krn prisma gabisa di client
 type FarmerInventory = any;
 type InventoryMutation = any;
@@ -60,6 +61,26 @@ const formatDate = (dateString: string | Date | null | undefined) => {
     month: "long",
     day: "numeric",
   });
+};
+
+const formatKeterangan = (item: any) => {
+  if (!item) return "-";
+  const ket = item.keterangan || "";
+  const uuidPattern = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
+
+  if (uuidPattern.test(ket)) {
+    return `Pengiriman ${item.komoditas || "komoditas"} ke Koperasi Desa`;
+  }
+  if (ket.includes("KONSUMSI_PRIBADI")) {
+    return `Konsumsi pribadi ${item.komoditas || ""}`;
+  }
+  if (ket.includes("RUSAK_SUSUT")) {
+    return `Penyusutan / kerusakan stok ${item.komoditas || ""}`;
+  }
+  if (!ket || ket === "PENJUALAN" || ket === "Pengurangan stok untuk PENJUALAN") {
+    return `Pengiriman ${item.komoditas || ""} ke Koperasi Desa`;
+  }
+  return ket;
 };
 
 export default function GudangInventoriPage() {
@@ -87,7 +108,19 @@ export default function GudangInventoriPage() {
   // Tab 3: Susut Form State
   const [komoditasSusut, setKomoditasSusut] = useState("");
   const [jumlahSusut, setJumlahSusut] = useState<number | string>("");
+  // helper untuk app tour membuka dialog kurangi stok
+  const openProdukDialog = () => {
+    setIsDeductModalOpen(true);
+  };
 
+  const closeProdukDialog = () => {
+    setIsDeductModalOpen(false);
+  };
+  useEffect(() => {
+    registerDialog("open-produk-dialog", openProdukDialog);
+
+    registerDialog("close-produk-dialog", closeProdukDialog);
+  }, []);
   const fetchInventory = useCallback(async () => {
     setIsLoading(true);
     try {
@@ -194,6 +227,10 @@ export default function GudangInventoriPage() {
     }
   };
 
+  const handleSubmitWithTour = (e: React.FormEvent) => {
+    handleTransactionSubmit(e);
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -227,6 +264,7 @@ export default function GudangInventoriPage() {
 
         {/* Action Button: - Kurangi Stok (Matched with Lahan Page button styling) */}
         <Button
+          data-tour="kurangi-stok"
           onClick={() => setIsDeductModalOpen(true)}
           className="bg-[#606C38] hover:bg-[#283618] text-white font-bold text-xs sm:text-sm rounded-xl h-11 px-4 shadow-none flex items-center gap-2 transition-colors shrink-0"
         >
@@ -235,9 +273,15 @@ export default function GudangInventoriPage() {
       </div>
 
       {/* TOP SECTION: PAPAN STOK GUDANG (3 Cards Grid) */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
+      <div
+        data-tour="statistik-produk"
+        className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6"
+      >
         {/* Card 1: Produk Primer */}
-        <Card className="bg-white border border-gray-200 rounded-2xl shadow-none">
+        <Card
+          data-tour="statistik-primer"
+          className="bg-white border border-gray-200 rounded-2xl shadow-none"
+        >
           <CardHeader className="pb-3 border-b border-gray-100 flex flex-row items-center justify-between space-y-0">
             <div className="flex items-center gap-2">
               <div className="h-8 w-8 rounded-lg bg-[#606C38]/10 text-[#606C38] flex items-center justify-center">
@@ -277,7 +321,10 @@ export default function GudangInventoriPage() {
         </Card>
 
         {/* Card 2: Produk Olahan */}
-        <Card className="bg-white border border-gray-200 rounded-2xl shadow-none">
+        <Card
+          data-tour="statistik-olahan"
+          className="bg-white border border-gray-200 rounded-2xl shadow-none"
+        >
           <CardHeader className="pb-3 border-b border-gray-100 flex flex-row items-center justify-between space-y-0">
             <div className="flex items-center gap-2">
               <div className="h-8 w-8 rounded-lg bg-[#DDA15E]/20 text-[#BC6C25] flex items-center justify-center">
@@ -317,7 +364,10 @@ export default function GudangInventoriPage() {
         </Card>
 
         {/* Card 3: Produk Sampingan */}
-        <Card className="bg-white border border-gray-200 rounded-2xl shadow-none">
+        <Card
+          data-tour="statistik-samping"
+          className="bg-white border border-gray-200 rounded-2xl shadow-none"
+        >
           <CardHeader className="pb-3 border-b border-gray-100 flex flex-row items-center justify-between space-y-0">
             <div className="flex items-center gap-2">
               <div className="h-8 w-8 rounded-lg bg-[#283618]/10 text-[#283618] flex items-center justify-center">
@@ -358,7 +408,10 @@ export default function GudangInventoriPage() {
       </div>
 
       {/* MIDDLE SECTION: AI Business Advisor Card (PRESERVED) */}
-      <Card className="bg-white border border-gray-200 rounded-2xl shadow-none">
+      <Card
+        data-tour="AI-Advisor"
+        className="bg-white border border-gray-200 rounded-2xl shadow-none"
+      >
         <CardContent className="p-4 sm:p-5 flex items-start sm:items-center gap-3 bg-[#FEFAE0]/30 border border-gray-200/80 rounded-2xl">
           <div className="h-10 w-10 rounded-xl bg-[#606C38] text-white flex items-center justify-center shrink-0">
             <Sparkles className="h-5 w-5" />
@@ -380,7 +433,10 @@ export default function GudangInventoriPage() {
       </Card>
 
       {/* BOTTOM SECTION: Buku Transaksi Inventori Table (PRESERVED) */}
-      <Card className="bg-white border border-gray-200 rounded-2xl shadow-none">
+      <Card
+        data-tour="Buku-Transaksi"
+        className="bg-white border border-gray-200 rounded-2xl shadow-none"
+      >
         <CardHeader className="pb-3 border-b border-gray-100">
           <CardTitle className="text-base font-bold text-gray-900">
             Buku Transaksi Inventori
@@ -449,7 +505,7 @@ export default function GudangInventoriPage() {
                         {item.jumlah} {item.satuan}
                       </TableCell>
                       <TableCell className="text-gray-500 font-medium">
-                        {item.keterangan}
+                        {formatKeterangan(item)}
                       </TableCell>
                     </TableRow>
                   ))
@@ -477,7 +533,10 @@ export default function GudangInventoriPage() {
           if (!isOpen) setDeductSuccess(false);
         }}
       >
-        <DialogContent className="sm:max-w-md bg-white border border-gray-200 rounded-2xl shadow-none font-['Quicksand',sans-serif]">
+        <DialogContent
+          data-tour="form-produk"
+          className="sm:max-w-md bg-white border border-gray-200 rounded-2xl shadow-none font-['Quicksand',sans-serif]"
+        >
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-gray-900 flex items-center gap-2">
               <MinusCircle className="h-5 w-5 text-[#606C38]" />
@@ -503,7 +562,7 @@ export default function GudangInventoriPage() {
               </p>
             </div>
           ) : (
-            <form onSubmit={handleTransactionSubmit} className="space-y-4 py-1">
+            <form onSubmit={handleSubmitWithTour} className="space-y-4 py-1">
               {/* Shadcn Tabs UI with 3 triggers: Diolah, Konsumsi, Rusak/Susut */}
               <Tabs
                 defaultValue="diolah"
@@ -513,18 +572,21 @@ export default function GudangInventoriPage() {
               >
                 <TabsList className="w-full grid grid-cols-3 bg-gray-100 p-1 rounded-xl font-bold text-xs">
                   <TabsTrigger
+                    data-tour="tab-diolah"
                     value="diolah"
                     className="rounded-lg text-xs py-1.5 font-bold data-[state=active]:bg-white data-[state=active]:text-[#606C38]"
                   >
                     Diolah
                   </TabsTrigger>
                   <TabsTrigger
+                    data-tour="tab-konsumsi"
                     value="konsumsi"
                     className="rounded-lg text-xs py-1.5 font-bold data-[state=active]:bg-white data-[state=active]:text-[#606C38]"
                   >
                     Konsumsi
                   </TabsTrigger>
                   <TabsTrigger
+                    data-tour="tab-susut"
                     value="susut"
                     className="rounded-lg text-xs py-1.5 font-bold data-[state=active]:bg-white data-[state=active]:text-[#606C38]"
                   >
@@ -540,7 +602,7 @@ export default function GudangInventoriPage() {
                       Bahan Baku (Dikurangi)
                     </span>
                     <div className="grid grid-cols-2 gap-2">
-                      <div className="space-y-1">
+                      <div className="space-y-1" data-tour="bahan-baku">
                         <Label className="text-[11px] font-bold text-gray-700">
                           Pilih Bahan Baku
                         </Label>
@@ -560,7 +622,7 @@ export default function GudangInventoriPage() {
                           </SelectContent>
                         </Select>
                       </div>
-                      <div className="space-y-1">
+                      <div className="space-y-1" data-tour="jumlah-bahan">
                         <Label className="text-[11px] font-bold text-gray-700">
                           Jumlah Dipakai
                         </Label>
@@ -589,7 +651,7 @@ export default function GudangInventoriPage() {
                       Hasil Olahan (Bertambah)
                     </span>
                     <div className="grid grid-cols-2 gap-2">
-                      <div className="space-y-1">
+                      <div className="space-y-1" data-tour="hasil-olahan">
                         <Label className="text-[11px] font-bold text-gray-700">
                           Hasil Olahan
                         </Label>
@@ -616,7 +678,7 @@ export default function GudangInventoriPage() {
                           </SelectContent>
                         </Select>
                       </div>
-                      <div className="space-y-1">
+                      <div className="space-y-1" data-tour="jumlah-hasil">
                         <Label className="text-[11px] font-bold text-gray-700">
                           Jumlah Dihasilkan
                         </Label>
@@ -719,6 +781,7 @@ export default function GudangInventoriPage() {
               {/* Submit Action Button: Simpan Transaksi (Matched with Lahan Page submit style) */}
               <DialogFooter className="pt-2">
                 <Button
+                  data-tour="simpan-produk"
                   type="submit"
                   disabled={isSubmitting}
                   className="w-full bg-[#606C38] hover:bg-[#283618] text-white text-xs font-bold h-11 rounded-xl shadow-none"

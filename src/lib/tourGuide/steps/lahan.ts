@@ -1,4 +1,5 @@
 import { DriveStep, Driver } from "driver.js";
+import { getNavSelector } from "../tourController";
 
 export interface LahanStepContext {
   getDriver: () => Driver | null;
@@ -90,11 +91,9 @@ export const getLahanSteps = (
       description:
         "Setelah semua data terisi dengan benar, tekan tombol ini untuk menyimpan data lahan ke database.",
       nextBtnText: "Simpan →",
-
       onNextClick: () => {
         context?.onOpenDialogAndProceed(
           "close-tambah-lahan",
-
           '[data-tour="list-lahan"]',
         );
       },
@@ -108,21 +107,15 @@ export const getLahanSteps = (
         "Setelah menambahkan lahan, daftar lahan yang kamu miliki akan ada disini.",
     },
   },
-
   {
     element: '[data-tour="card-lahan-pertama"]',
-
     popover: {
       title: "Lihat Detail Lahan",
-
       description: "Tekan Selanjutnya untuk membuka detail lahan pertama.",
-
       nextBtnText: "Buka Detail →",
-
       onNextClick: () => {
         context?.onOpenDialogAndProceed(
           "detail-lahan",
-
           '[data-tour="detail-lahan"]',
         );
       },
@@ -130,10 +123,8 @@ export const getLahanSteps = (
   },
   {
     element: '[data-tour="detail-lahan"]',
-
     popover: {
       title: "Detail Lahan",
-
       description:
         "Di sini ditampilkan seluruh informasi lengkap mengenai lahan yang dipilih.",
     },
@@ -155,7 +146,10 @@ export const getLahanSteps = (
     },
   },
   {
-    element: '[data-tour="menu-produksi"]',
+    element: getNavSelector(
+      '[data-tour="menu-produksi"]',
+      '[data-tour="island-nav"]',
+    ),
     popover: {
       title: "Produksi & Stok",
       description:

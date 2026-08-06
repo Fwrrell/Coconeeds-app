@@ -40,6 +40,13 @@ export async function POST(req: Request) {
                 data: { jumlah: { decrement: jumlah } },
             });
 
+            const keteranganText =
+              alasan === "KONSUMSI_PRIBADI"
+                ? `Konsumsi pribadi ${komoditas}`
+                : alasan === "RUSAK_SUSUT"
+                ? `Penyusutan / kerusakan stok ${komoditas}`
+                : `Pengurangan stok ${komoditas}`;
+
             // 2. log mutation
             await tx.inventoryMutation.create({
                 data: {
@@ -49,7 +56,7 @@ export async function POST(req: Request) {
                     jumlah: jumlah,
                     satuan: satuan,
                     alasan: alasan,
-                    keterangan: `Pengurangan stok untuk ${alasan}`,
+                    keterangan: keteranganText,
                 }
             });
             

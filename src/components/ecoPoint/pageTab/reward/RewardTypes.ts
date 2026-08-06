@@ -1,10 +1,11 @@
-export type RewardCategory = "all" | "digital" | "pertanian";
+export type RewardCategory = "all" | "digital" | "pertanian" | string;
 
 export interface Reward {
-  id: number;
+  id: string | number;
   title: string;
   description: string;
   poin: string;
+  costPoints?: number;
   image: string;
-  category: RewardCategory;
+  category: string;
 }

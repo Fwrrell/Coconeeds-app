@@ -308,7 +308,10 @@ export default function FarmerDashboardRoot() {
       : "Akun belum terverifikasi";
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto w-full font-['Quicksand',sans-serif] bg-[#FFFFFF]">
+    <div
+      data-tour="Greeting"
+      className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto w-full font-['Quicksand',sans-serif] bg-[#FFFFFF]"
+    >
       {/* Header content */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 pb-5">
         <div>
@@ -322,7 +325,10 @@ export default function FarmerDashboardRoot() {
       </div>
 
       {/* --- 4 MAIN STATISTIC CARDS --- */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 w-full">
+      <div
+        data-tour="statistik singkat"
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 w-full"
+      >
         {farmerStats.map((data, index) => (
           <Card
             key={index}
@@ -355,7 +361,10 @@ export default function FarmerDashboardRoot() {
       {/* --- CHART LAYOUT --- */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-6">
         {/* Profit Analytics Bar Chart */}
-        <Card className="lg:col-span-3 bg-white border border-gray-200 rounded-2xl shadow-none">
+        <Card
+          data-tour="Profit"
+          className="lg:col-span-3 bg-white border border-gray-200 rounded-2xl shadow-none"
+        >
           <CardHeader className="pb-3 border-b border-gray-100">
             <CardTitle className="text-base font-bold text-gray-900">
               Analisis Profitabilitas 6 Bulan Terakhir
@@ -435,7 +444,10 @@ export default function FarmerDashboardRoot() {
         </Card>
 
         {/* Component Donut Chart */}
-        <Card className="lg:col-span-1 bg-white border border-gray-200 rounded-2xl shadow-none">
+        <Card
+          data-tour="Komposisi"
+          className="lg:col-span-1 bg-white border border-gray-200 rounded-2xl shadow-none"
+        >
           <CardHeader className="pb-3 border-b border-gray-100">
             <CardTitle className="text-base font-bold text-gray-900">
               Komposisi Penjualan
@@ -486,8 +498,8 @@ export default function FarmerDashboardRoot() {
         </Card>
       </div>
 
-      {/* --- AI INSIGHT WIDGET (GEMINI 2.0 FLASH INTEGRATION) --- */}
-      <Card className="bg-white border border-gray-200 rounded-2xl shadow-none overflow-hidden">
+      {/* --- AI INSIGHT --- */}
+      <Card className="bg-white border border-gray-200 rounded-2xl shadow-none">
         <CardHeader className="pb-3 border-b border-gray-100 flex flex-row items-center justify-between space-y-0">
           <div className="flex items-center gap-2">
             <div className="h-8 w-8 rounded-lg bg-[#606C38]/10 text-[#606C38] flex items-center justify-center">

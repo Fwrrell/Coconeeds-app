@@ -1,4 +1,5 @@
 import { DriveStep, Driver } from "driver.js";
+import { getNavSelector } from "../tourController";
 
 export interface EcoPointStepContext {
   getDriver?: () => Driver | null;
@@ -93,7 +94,10 @@ export const getEcoSteps = (
     },
   },
   {
-    element: '[data-tour="menu-dashboard"]',
+    element: getNavSelector(
+      '[data-tour="menu-dashboard"]',
+      '[data-tour="menu-dashboard-mobile"]',
+    ),
     popover: {
       title: "Selesai Onboarding",
       description:

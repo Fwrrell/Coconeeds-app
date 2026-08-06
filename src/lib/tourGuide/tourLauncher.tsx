@@ -53,23 +53,25 @@ export default function TourLauncher() {
       { selector: string; targetPath: string; isFinal?: boolean }
     > = {
       "/app": {
-        selector: '[data-tour="menu-lahan"]',
+        selector: '[data-tour="menu-lahan"], [data-tour="menu-lahan-mobile"]',
         targetPath: "/app/lahan",
       },
       "/app/lahan": {
-        selector: '[data-tour="menu-produksi"]',
+        selector: '[data-tour="menu-produksi"], [data-tour="island-nav"]',
         targetPath: "/app/produksi",
       },
       "/app/produksi": {
-        selector: '[data-tour="menu-pengiriman"]',
+        selector:
+          '[data-tour="menu-pengiriman"], [data-tour="menu-pengiriman-mobile"]',
         targetPath: "/app/pengiriman",
       },
       "/app/pengiriman": {
-        selector: '[data-tour="menu-Ecopoint"]',
+        selector: '[data-tour="menu-Ecopoint"], [data-tour="island-nav"]',
         targetPath: "/app/eco-points",
       },
       "/app/eco-points": {
-        selector: '[data-tour="menu-dashboard"]',
+        selector:
+          '[data-tour="menu-dashboard"], [data-tour="menu-dashboard-mobile"]',
         targetPath: "/app",
         isFinal: true,
       },

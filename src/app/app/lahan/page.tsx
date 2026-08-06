@@ -31,6 +31,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import Image from "next/image";
+import { registerDialog } from "@/lib/tourGuide/tourController";
 type Lahan = any; // type inline smntara biar ga error di browser
 
 // --- HELPER UNTUK FORMAT TANGGAL ---
@@ -81,7 +82,16 @@ export default function LahanPage() {
   useEffect(() => {
     fetchLahan();
   }, [fetchLahan]);
+  //register dialog action ke tourcontroller
+  useEffect(() => {
+    registerDialog("tambah-lahan", openTambahDialog);
 
+    registerDialog("close-tambah-lahan", closeTambahDialog);
+
+    registerDialog("detail-lahan", openDetailDialog);
+
+    // registerDialog("edit-lahan", openEditDialog);
+  }, [lahanList]);
   // kalkulasi statistik dari data
   const lahanStats = useMemo(() => {
     const totalLuas = lahanList.reduce((sum, lahan) => sum + lahan.luasM2, 0);
@@ -179,7 +189,9 @@ export default function LahanPage() {
       alert(err.message);
     }
   };
-
+  const handleOpenDetail = (lahan: Lahan) => {
+    setSelectedLahan(lahan);
+  };
   const handleOpenEditDialog = (lahan: Lahan) => {
     setSelectedLahan(lahan);
     setNamaLahan(lahan.namaLahan);
@@ -393,7 +405,7 @@ export default function LahanPage() {
             key={index}
             className="bg-white border border-gray-200 rounded-2xl shadow-none hover:border-gray-300 transition-colors"
           >
-            <CardContent className="px-4 sm:px-5 flex items-center gap-4">
+            <CardContent className="p-4 sm:p-5 flex items-center gap-4">
               <div className="w-16 h-16 shrink-0 border border-gray-200 bg-gray-50/50 rounded-2xl flex items-center justify-center">
                 <Image
                   src={data.iconSrc}
@@ -511,7 +523,10 @@ export default function LahanPage() {
         open={!!selectedLahan && !isEditOpen}
         onOpenChange={() => setSelectedLahan(null)}
       >
-        <DialogContent className="sm:max-w-lg bg-white border border-gray-200 rounded-2xl shadow-none font-['Quicksand',sans-serif]">
+        <DialogContent
+          data-tour="detail-lahan"
+          className="sm:max-w-lg bg-white border border-gray-200 rounded-2xl shadow-none font-['Quicksand',sans-serif]"
+        >
           <DialogHeader>
             <div className="flex items-center gap-2">
               <div className="h-8 w-8 rounded-lg bg-[#606C38]/10 text-[#606C38] flex items-center justify-center">
@@ -599,6 +614,7 @@ export default function LahanPage() {
               onClick={() =>
                 selectedLahan && handleDeleteLahan(selectedLahan.id)
               }
+              data-tour="hapus-lahan"
               className="w-full sm:w-1/2 h-11 border-red-200 text-red-600 hover:bg-red-50 text-xs font-bold rounded-xl shadow-none flex items-center justify-center gap-1.5"
             >
               <Trash2 className="h-4 w-4" /> Hapus Lahan

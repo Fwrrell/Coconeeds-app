@@ -1,50 +1,68 @@
+"use client";
+
 import React from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { Gift, LayoutGrid, Trophy } from "lucide-react";
 import DailyMission from "./pageTab/Mission/DailyMission";
 import MonthlyMission from "./pageTab/Mission/MonthlyMission";
 import RewardPage from "./pageTab/reward/RewardPage";
-import LeaderboardClient from "./pageTab/leaderboard/LeaderboardClient";
 import LeaderboardPage from "./pageTab/leaderboard/LeaderboardPage";
-export default function TabsEcoPoint() {
+
+interface TabsEcoPointProps {
+  dailyMissions?: any[];
+  monthlyMissions?: any[];
+  rewards?: any[];
+  userBalance?: number;
+  onBalanceChange?: (newBalance: number) => void;
+}
+
+export default function TabsEcoPoint({
+  dailyMissions,
+  monthlyMissions,
+  rewards,
+  userBalance,
+  onBalanceChange,
+}: TabsEcoPointProps) {
   return (
-    <Tabs defaultValue="mission" className="py-5 gap-2">
-      <TabsList className="w-full h-16 grid grid-cols-3 rounded-2xl p-0 bg-white shadow-sm">
+    <Tabs defaultValue="mission" className="py-4 gap-2">
+      <TabsList className="w-full h-14 grid grid-cols-3 rounded-2xl p-1 bg-white border border-gray-200 shadow-sm">
         <TabsTrigger
           value="mission"
-          className="flex items-center gap-2 w-full h-full rounded-2xl font-semibold text-base !data-[state=active]:bg-[#269957] !data-[state=active]:text-white !data-[state=active]:shadow-md"
+          className="flex items-center justify-center gap-2 w-full h-full rounded-xl font-bold text-sm !data-[state=active]:bg-[#606C38] !data-[state=active]:text-white !data-[state=active]:shadow-none transition-all"
         >
-          <LayoutGrid className="w-5 h-5" />
-          <span className="text-xs lg:text-lg">Mission</span>
+          <LayoutGrid className="w-4 h-4" />
+          <span>Misi & Gamifikasi</span>
         </TabsTrigger>
         <TabsTrigger
           value="reward"
-          className="flex items-center gap-2 w-full h-full rounded-2xl font-semibold text-base data-[state=active]:bg-[#269957] data-[state=active]:text-white data-[state=active]:shadow-md"
+          className="flex items-center justify-center gap-2 w-full h-full rounded-xl font-bold text-sm !data-[state=active]:bg-[#606C38] !data-[state=active]:text-white !data-[state=active]:shadow-none transition-all"
         >
-          <Gift className="w-5 h-5" />
-          <span className="text-xs lg:text-lg">Reward</span>
+          <Gift className="w-4 h-4" />
+          <span>Tukar Hadiah</span>
         </TabsTrigger>
         <TabsTrigger
           value="leaderboard"
-          className="flex items-center gap-2 w-full h-full rounded-2xl font-semibold text-base data-[state=active]:bg-[#269957] data-[state=active]:text-white data-[state=active]:shadow-md"
+          className="flex items-center justify-center gap-2 w-full h-full rounded-xl font-bold text-sm !data-[state=active]:bg-[#606C38] !data-[state=active]:text-white !data-[state=active]:shadow-none transition-all"
         >
-          <Trophy className="w-5 h-5" />
-          <span className="text-xs lg:text-lg">Leaderboard</span>
+          <Trophy className="w-4 h-4" />
+          <span>Peringkat Petani</span>
         </TabsTrigger>
       </TabsList>
-      <TabsContent value="mission">
-        <div className="flex flex-col gap-6 bg-white p-6">
-          <h2 className="text-2xl font-semibold text-[#606C38]">
-            Misi EcoPoints
-          </h2>
-          <DailyMission />
-          <MonthlyMission />
-        </div>
+
+      <TabsContent value="mission" className="mt-4 space-y-6">
+        <DailyMission missions={dailyMissions} />
+        <MonthlyMission missions={monthlyMissions} />
       </TabsContent>
-      <TabsContent value="reward">
-        <RewardPage />
+
+      <TabsContent value="reward" className="mt-4">
+        <RewardPage
+          rewards={rewards}
+          userBalance={userBalance}
+          onBalanceChange={onBalanceChange}
+        />
       </TabsContent>
-      <TabsContent value="leaderboard">
+
+      <TabsContent value="leaderboard" className="mt-4">
         <LeaderboardPage />
       </TabsContent>
     </Tabs>

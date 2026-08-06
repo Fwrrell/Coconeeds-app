@@ -43,6 +43,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { registerDialog } from "@/lib/tourGuide/tourController";
 // hapus prisma import biar vercel ga komplain client side
 type Panen = any;
 type Kopdes = any;
@@ -178,6 +179,20 @@ export default function FarmerPengirimanPage() {
     fetchInitialData();
   }, [fetchInitialData]);
 
+  // Helper fungsi untuk membuka dan menutup dialog dari App Tour
+  const openPengirimanDialog = () => {
+    setIsCreateModalOpen(true);
+  };
+
+  const closePengirimanDialog = () => {
+    setIsCreateModalOpen(false);
+  };
+
+  useEffect(() => {
+    registerDialog("open-pengiriman-dialog", openPengirimanDialog);
+    registerDialog("close-pengiriman-dialog", closePengirimanDialog);
+  }, []);
+
   // Handle selectedBarang auto-select first available item
   useEffect(() => {
     if (availableInventory.length > 0 && !selectedBarang) {
@@ -249,6 +264,10 @@ export default function FarmerPengirimanPage() {
     }
   };
 
+  const handleCreateShipmentSubmitWithTour = (e: React.FormEvent) => {
+    handleCreateShipmentSubmit(e);
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen bg-[#FFFFFF]">
@@ -266,7 +285,10 @@ export default function FarmerPengirimanPage() {
   }
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto w-full font-['Quicksand',sans-serif] bg-[#FFFFFF]">
+    <div
+      data-tour="halaman-pengiriman"
+      className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto w-full font-['Quicksand',sans-serif] bg-[#FFFFFF]"
+    >
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 pb-5">
         <div>
@@ -283,6 +305,7 @@ export default function FarmerPengirimanPage() {
 
         <div className="flex items-center gap-3">
           <Button
+            data-tour="buat-pengiriman"
             onClick={() => setIsCreateModalOpen(true)}
             className="bg-[#606C38] hover:bg-[#283618] text-white font-bold text-xs sm:text-sm rounded-xl h-11 px-4 shadow-none flex items-center gap-2 transition-colors shrink-0"
           >
@@ -292,7 +315,7 @@ export default function FarmerPengirimanPage() {
       </div>
 
       {/* --- ACTIVE SHIPMENTS SECTION --- */}
-      <div className="space-y-4">
+      <div className="space-y-4" data-tour="pengiriman-berjalan">
         <div className="flex items-center justify-between">
           <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
             <Truck className="h-5 w-5 text-[#606C38]" />
@@ -441,7 +464,7 @@ export default function FarmerPengirimanPage() {
       </div>
 
       {/* --- HISTORY SECTION --- */}
-      <div className="space-y-4 pt-4">
+      <div className="space-y-4 pt-4" data-tour="riwayat-pengiriman">
         <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
           <History className="h-5 w-5 text-gray-500" />
           Riwayat Pengiriman Selesai ({historyShipments.length})
@@ -506,11 +529,11 @@ export default function FarmerPengirimanPage() {
             </div>
           ) : (
             <form
-              onSubmit={handleCreateShipmentSubmit}
+              onSubmit={handleCreateShipmentSubmitWithTour}
               className="space-y-4 py-2"
             >
               {/* 1. Pilih Barang dari Gudang */}
-              <div className="space-y-1.5">
+              <div className="space-y-1.5" data-tour="form-pilih-barang">
                 <Label className="text-xs font-bold text-gray-700">
                   Pilih Barang dari Gudang
                 </Label>
@@ -537,7 +560,7 @@ export default function FarmerPengirimanPage() {
               </div>
 
               {/* 2. Jumlah Pengiriman */}
-              <div className="space-y-1.5">
+              <div className="space-y-1.5" data-tour="form-jumlah-pengiriman">
                 <Label className="text-xs font-bold text-gray-700">
                   Jumlah Pengiriman (
                   {availableInventory.find(
@@ -556,7 +579,7 @@ export default function FarmerPengirimanPage() {
               </div>
 
               {/* 3. Harga Dasar ke Kopdes */}
-              <div className="space-y-1.5">
+              <div className="space-y-1.5" data-tour="form-harga-dasar">
                 <Label className="text-xs font-bold text-gray-700">
                   Harga Dasar ke Kopdes (Rp / Satuan)
                 </Label>
@@ -571,7 +594,10 @@ export default function FarmerPengirimanPage() {
               </div>
 
               {/* Estimasi Pendapatan Preview */}
-              <div className="p-3 rounded-xl bg-[#606C38]/10 border border-[#606C38]/20 space-y-0.5">
+              <div
+                className="p-3 rounded-xl bg-[#606C38]/10 border border-[#606C38]/20 space-y-0.5"
+                data-tour="form-estimasi-pendapatan"
+              >
                 <span className="text-[10px] font-bold text-[#606C38] uppercase block">
                   Kalkulasi Estimasi
                 </span>
@@ -584,7 +610,7 @@ export default function FarmerPengirimanPage() {
               </div>
 
               {/* 4. Pos Kopdes Tujuan (Restricted to Admin Assignment) */}
-              <div className="space-y-1.5">
+              <div className="space-y-1.5" data-tour="form-pos-kopdes">
                 <Label className="text-xs font-bold text-gray-700">
                   Pos Kopdes Tujuan
                 </Label>
@@ -615,7 +641,7 @@ export default function FarmerPengirimanPage() {
 
               {/* 5. Metode Pengiriman & Tanggal */}
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
+                <div className="space-y-1.5" data-tour="form-metode-pengiriman">
                   <Label className="text-xs font-bold text-gray-700">
                     Metode Pengiriman
                   </Label>
@@ -641,7 +667,10 @@ export default function FarmerPengirimanPage() {
                   </Select>
                 </div>
 
-                <div className="space-y-1.5">
+                <div
+                  className="space-y-1.5"
+                  data-tour="form-tanggal-pengiriman"
+                >
                   <Label className="text-xs font-bold text-gray-700">
                     Tanggal
                   </Label>
@@ -659,6 +688,7 @@ export default function FarmerPengirimanPage() {
               {/* Submit CTA */}
               <DialogFooter className="pt-2">
                 <Button
+                  data-tour="form-kirim-pengiriman"
                   type="submit"
                   // lock tombol klo blm di verify
                   disabled={isSubmitting || !userProfile?.kopdes?.id}

@@ -36,15 +36,36 @@ import {
 } from "@/components/ui/dialog";
 import Image from "next/image";
 import { getAvatarInitials } from "@/lib/utils";
+import { registerDialog } from "@/lib/tourGuide/tourController";
 import { getDefaultSatuan } from "@/lib/satuan";
 
 // nav item list buat petani kebun
 const FARMER_NAV_ITEMS = [
-  { name: "Dashboard", href: "/app", icon: LayoutDashboard },
-  { name: "Lahan Kebun", href: "/app/lahan", icon: Sprout },
-  { name: "Produksi & Stok", href: "/app/produksi", icon: Warehouse },
-  { name: "Pengiriman", href: "/app/pengiriman", icon: Truck },
-  { name: "Eco-Points", href: "/app/eco-points", icon: Recycle },
+  {
+    name: "Dashboard",
+    href: "/app",
+    icon: LayoutDashboard,
+    tour: "menu-dashboard",
+  },
+  { name: "Lahan Kebun", href: "/app/lahan", icon: Sprout, tour: "menu-lahan" },
+  {
+    name: "Produksi & Stok",
+    href: "/app/produksi",
+    icon: Warehouse,
+    tour: "menu-produksi",
+  },
+  {
+    name: "Pengiriman",
+    href: "/app/pengiriman",
+    icon: Truck,
+    tour: "menu-pengiriman",
+  },
+  {
+    name: "Eco-Points",
+    href: "/app/eco-points",
+    icon: Recycle,
+    tour: "menu-Ecopoint",
+  },
 ];
 
 export function FarmerSidebar({
@@ -66,6 +87,24 @@ export function FarmerSidebar({
   const setModalOpen = setExternalOpen || setInternalOpen;
 
   const [modalSuccess, setModalSuccess] = useState(false);
+
+  // Helper fungsi untuk membuka dan menutup dialog dari App Tour & Handler
+  const openHarvestDialog = useCallback(() => {
+    setModalOpen(true);
+  }, [setModalOpen]);
+
+  const closeHarvestDialog = useCallback(() => {
+    setModalOpen(false);
+  }, [setModalOpen]);
+
+  useEffect(() => {
+    registerDialog("open-harvest-dialog", openHarvestDialog);
+    registerDialog("close-harvest-dialog", closeHarvestDialog);
+  }, [openHarvestDialog, closeHarvestDialog]);
+
+  const handleOpenHarvestModal = () => {
+    openHarvestDialog();
+  };
 
   // dynamic user data n avatar initials logic
   const userName = session?.user?.name || "Pak Agus";
@@ -237,7 +276,8 @@ export function FarmerSidebar({
         {/* Global CTA Button: + Catat Hasil Panen */}
         <div className="p-4 border-b border-gray-100">
           <Button
-            onClick={() => setModalOpen(true)}
+            data-tour="hasil-panen"
+            onClick={handleOpenHarvestModal}
             className="w-full bg-[#606C38] hover:bg-[#283618] text-white font-bold text-xs h-11 rounded-xl shadow-none flex items-center justify-center gap-2 transition-colors"
           >
             <PlusCircle className="h-4 w-4" /> Catat Hasil Panen
@@ -245,7 +285,10 @@ export function FarmerSidebar({
         </div>
 
         {/* Navigation Menu Links */}
-        <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
+        <nav
+          data-tour="navbar"
+          className="flex-1 p-3 space-y-1 overflow-y-auto"
+        >
           {FARMER_NAV_ITEMS.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href;
@@ -254,6 +297,7 @@ export function FarmerSidebar({
               <Link
                 key={item.href}
                 href={item.href}
+                data-tour={item.tour}
                 className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
                   isActive
                     ? "bg-[#606C38]/10 text-[#606C38] border border-[#606C38]/20"
@@ -322,7 +366,7 @@ export function FarmerSidebar({
           ) : (
             <form onSubmit={handleHarvestSubmit} className="space-y-4 py-2">
               {/* Field 1: Pilih Lahan (Wired to Real API Data) */}
-              <div className="space-y-1.5">
+              <div className="space-y-1.5" data-tour="form-kebun-asal">
                 <div className="flex items-center justify-between">
                   <Label className="text-xs font-bold text-gray-700">
                     Pilih Lahan Kebun
@@ -368,7 +412,7 @@ export function FarmerSidebar({
               </div>
 
               {/* Field 2: Kategori Komoditas */}
-              <div className="space-y-1.5">
+              <div className="space-y-1.5" data-tour="form-kategori-produk">
                 <Label className="text-xs font-bold text-gray-700">
                   Kategori Komoditas
                 </Label>
@@ -400,7 +444,7 @@ export function FarmerSidebar({
               </div>
 
               {/* Field 3: Jenis Produk */}
-              <div className="space-y-1.5">
+              <div className="space-y-1.5" data-tour="form-jenis-produk">
                 <Label className="text-xs font-bold text-gray-700">
                   Jenis Produk
                 </Label>
@@ -442,6 +486,7 @@ export function FarmerSidebar({
               {/* Submit CTA */}
               <DialogFooter className="pt-2">
                 <Button
+                  data-tour="form-simpan-panen"
                   type="submit"
                   disabled={lahanList.length === 0}
                   className="w-full bg-[#606C38] hover:bg-[#283618] text-white text-xs font-bold h-11 rounded-xl shadow-none flex items-center justify-center gap-2"
